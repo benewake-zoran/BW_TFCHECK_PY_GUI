@@ -4,3 +4,4 @@ dist/
 *.spec
 func/__pycache__/
 test.json
+testIIC.json

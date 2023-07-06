@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(563, 693)
+        MainWindow.resize(565, 693)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("d:\\北醒资料\\Benewake_CheckWINCC\\BenewakeLogo.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -72,7 +72,7 @@ class Ui_MainWindow(object):
         self.label_return.setObjectName("label_return")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 563, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 565, 26))
         self.menubar.setObjectName("menubar")
         self.menu = QtWidgets.QMenu(self.menubar)
         self.menu.setObjectName("menu")

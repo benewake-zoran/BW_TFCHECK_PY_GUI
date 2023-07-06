@@ -12,6 +12,7 @@ from PyQt5.QtGui import QFont
 from Ui_CheckWINCC import Ui_MainWindow
 import threading
 import func.UART
+import func.IIC
 
 CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
@@ -29,6 +30,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.cmdlist = []  # 初始化点击按钮对应发送指令的列表
         self.rxlist = []  # 初始化点击按钮对应接收指令的列表
         self.warning_shown = False  # 布尔变量，记录弹窗是否已经存在
+
+        self.address = None
 
     # 获取串口列表
     def getSerialPort(self):
@@ -149,6 +152,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                 self.pushButton_connect.setStyleSheet("background-color: none")
                 self.comboBox_serial.setDisabled(False)
                 self.comboBox_port.setDisabled(False)
+                if self.comboBox_port.currentText() == 'IIC':
+                    func.IIC.refresh_IIC(self)  # 复位IIC转接板
                 self.ser.close()
                 print('serial port is close')
             print('refresh serial port')
@@ -203,7 +208,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
 
                     # 自动保存widget为各个类型
                     if item['widget'] == 'QLabel':
-                        widget = QtWidgets.QLabel(self)
+                        widget = QtWidgets.QLabel('', self)
                         widget.setAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignLeft)
                         layout.addWidget(widget, item['id'], 3)  # 第四列为不同类型组件
                     elif item['widget'] == 'QComboBox':
@@ -256,36 +261,14 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         try:
             button = self.sender()  # 获取当前被点击的按钮
             self.index = self.buttonlist.index(button)  # 获取按钮在列表中的索引
-            # 若需要发送指令则发送指令
-            if self.data[self.index]['widget'] == 'QLabel':
-                print('send cmd:', self.data[self.index]['cmd'])  # 获取对应的指令
-                if self.data[self.index]['cmd'] != '':
-                    self.labelCmdb = bytes.fromhex(self.data[self.index]['cmd'])
-                    print('cmdb', self.labelCmdb)
-                    self.ser.reset_input_buffer()
-                    self.ser.write(self.labelCmdb)  # 发送指令
-                    print('------------------------------')
-            elif self.data[self.index]['widget'] == 'QLineEdit':
-                self.editVal = self.widgetslist[self.index].text()  # 获取文本框输入值
-                print('editVal:', self.editVal)
-                self.lineEditCmd()
-                self.ser.reset_input_buffer()
-                #self.ser.write(self.newCmd)
-            elif self.data[self.index]['widget'] == 'QComboBox':
-                self.boxVal = self.widgetslist[self.index].currentText()  # 获取当前下拉列表值
-                print('boxVal:', self.boxVal)
-                self.comboBoxCmd()
-                self.ser.reset_input_buffer()
-                self.ser.write(self.newCmd)
 
-            # 发送指令后对回显检查和接收处理，或检查无需发送指令的雷达配置
-            if self.data[self.index]['cmd'] != '':
-                self.recvData_UART()
-                self.recvAnalysis_UART()
-                self.recvJudge_UART()
-            else:
-                self.checkLabel_UART()  # 检查对应雷达配置
-                #self.rx = b''
+            if self.comboBox_port.currentText() == 'UART':
+                func.UART.sendCmd_UART(self)
+                self.check_UART()  # 检查UART对应雷达配置
+            elif self.comboBox_port.currentText() == 'IIC':
+                func.IIC.sendCmd_IIC(self)
+                self.check_IIC()  # 检查IIC对应雷达配置
+
             self.timer.start(100)  # 启动计时器为100毫秒
             self.savelist()
             self.saveSetting()
@@ -298,13 +281,13 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             if self.data[self.index]['widget'] == 'QLabel':
                 self.widgetslist[self.index].setText('')
             if type(e) == AttributeError or type(e) == serial.serialutil.PortNotOpenError or type(e) == serial.serialutil.SerialException:
-                # QMessageBox.warning(None, 'Error', '串口未连接或读取数据失败！')
+                QMessageBox.warning(None, 'Error', '串口未连接或读取数据失败！')
                 print(e)
             elif type(e) == ValueError or type(e) == IndexError:
                 if self.data[self.index]['widget'] != 'QLabel':
                     QMessageBox.warning(None, 'Error', '检查输入值！')
             else:
-                QMessageBox.warning(None, 'Error', str(e))
+                QMessageBox.warning(None, 'Error', str(e))  # 可注释
 
     # 清除组件标签内容以及返回标签内容
     def clearLabel(self):
@@ -325,317 +308,65 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             self.labelReturnlist[self.index].setVisible(True)
             self.timer.stop()
 
-    # 发送指令后接收指令回显并判断 5A 帧头
-    def recvData_UART(self):
-        start_time = time.time()  # 记录开始时间
-        while True:
-            if self.ser.in_waiting:  # 如果串口有数据接收
-                rxhead = self.ser.read(1)  # 读取一个字节，作为帧头
-                print('rxhead:', rxhead, 'rxheadhex:', rxhead.hex())
-                if rxhead == CMD_FRAME_HEADER:  # 判断帧头是否是0x5A
-                    rxlen = self.ser.read(1)  # 若是读取一个长度字节
-                    rxlenint = rxlen[0]  # 将bytes转为int
-                    rxdata = self.ser.read(rxlenint - 2)  # 读取剩下的数据字节
-                    self.rx = rxhead + rxlen + rxdata
-                    print('rxlen', rxlen, 'rxdata:', rxdata, 'rx:', self.rx)
-                    print('rxlenhex:', rxlen.hex(), 'rxlenint:', rxlenint, 'rxdatahex:', rxdata.hex())
-                    print('rxhex:', ' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
-                    print('------------------------------')
-                    break
-                elif (time.time() - start_time) > 1:  # 数据接收超过 1s 都无帧头跳出循环
-                    print('Timeout 1s, rx read 18 bytes')
-                    self.rx = self.ser.read(18)  # 超时读取两个帧来观察
-                    self.labelReturnlist[self.index].setText('NG')
-                    self.labelReturnlist[self.index].setStyleSheet('color: red')
-                    if self.data[self.index]['widget'] == 'QLabel':
-                        self.widgetslist[self.index].setText('')
-                    break
-            else:
-                if (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
-                    print('Timeout 1s, empty rx')
-                    self.rx = b''
-                    self.labelReturnlist[self.index].setText('NG')
-                    self.labelReturnlist[self.index].setStyleSheet('color: red')
-                    if self.data[self.index]['widget'] == 'QLabel':
-                        self.widgetslist[self.index].setText('')
-                    break
-
-    # 根据配置标签名称对rx进行处理和回显正误判断
-    def recvAnalysis_UART(self):
-        if self.data[self.index]['name'] == '序列号':
-            if self.rx[2] == 0x12:
-                SN_rxhex = self.rx[3:17]
-                SN_rxstr = ''.join([chr(x) for x in SN_rxhex])
-                self.widgetslist[self.index].setText(SN_rxstr)
-                print('序列号是：', SN_rxstr)
-                print('------------------------------')
-        elif self.data[self.index]['name'] == '固件版本':
-            if self.rx[2] == 0x01:
-                version_rxhex = self.rx[3:6][::-1].hex()  # 取出字节数组并反转后转为十六进制
-                # 每两个字符由hex转为int，用'.'连接为str
-                version_rxstr = '.'.join(str(int(version_rxhex[i:i + 2], 16)) for i in range(0, len(version_rxhex), 2))
-                self.widgetslist[self.index].setText(version_rxstr)
-                print('固件版本是：', version_rxstr)
-                print('------------------------------')
-        elif self.data[self.index]['widget'] == 'QLabel':
-            self.widgetslist[self.index].setText(' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
-
-    def recvJudge_UART(self):
-        if self.data[self.index]['widget'] == 'QLabel' or self.data[self.index]['widget'] == 'QLineEdit':
-            if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text != '':
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
-            elif self.data[self.index]['std'] == self.widgetslist[self.index].text():
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
-            else:
-                self.labelReturnlist[self.index].setText('NG')
-                self.labelReturnlist[self.index].setStyleSheet('color: red')
-        elif self.data[self.index]['widget'] == 'QComboBox':
-            if self.data[self.index]['std'] == '' and self.widgetslist[self.index].currentText != '':
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
-            elif self.data[self.index]['std'] == self.widgetslist[self.index].text():
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
-            else:
-                self.labelReturnlist[self.index].setText('NG')
-                self.labelReturnlist[self.index].setStyleSheet('color: red')
-
-
-
-    def checkLabel_UART(self):
-        func.UART.checkBaud_UART(self)
-        func.UART.checkFrame_UART(self)
-        func.UART.checkDis_UART(self)
-        '''
-        if self.data[self.index]['name'] == '波特率':
-            self.widgetslist[self.index].setText(str(self.ser.baudrate))
-            baud = str(self.ser.baudrate)
-            stdbaud = self.data[self.index]['std']
-            print('期望值:', stdbaud, '检查值', baud)
-            if baud == stdbaud:
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
-                print('Baudrate is Correct')
-            else:
-                self.labelReturnlist[self.index].setText('NG')
-                self.labelReturnlist[self.index].setStyleSheet('color: red')
-                print('Baudrate is Error')
-            self.rx = b''
-            print('------------------------------')
-        elif self.data[self.index]['name'] == '输出帧率':
-            # 计算帧率
-            self.ser.reset_input_buffer()
-            start_time = time.time()
-            frame_count = 0
-            while True:
-                rx = self.ser.read(9)
-                if len(rx) == 9:
-                    frame_count += 1
-                endtime = time.time()
-                time_diff = endtime - start_time
-                if time_diff >= 1:
-                    fps = frame_count / time_diff  # 计算帧率
-                    print('Frame rate: {:.2f} Hz'.format(fps))
-                    break
-            # 判断帧率是否正确
-            stdfps = int(self.data[self.index]['std'])
-            stdfps_diff = 20
-            if abs(fps - stdfps) <= stdfps_diff:
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
-                print('Framerate is Correct')
-            else:
-                self.labelReturnlist[self.index].setText('NG')
-                self.labelReturnlist[self.index].setStyleSheet('color: red')
-                print('Framerate is Error')
-            self.widgetslist[self.index].setText(str(round(fps)) + ' (Hz)')
-            self.rx = b''
-            print('------------------------------')
-        elif self.data[self.index]['name'] == '测距结果':
-            if self.data[self.index]['std'] != '':
-                stddis = int(self.data[self.index]['std'])
-            else:
-                stddis = 0
-            stddis_diff = 10  # 允许测距误差范围
-            start_time = time.time()  # 记录开始时间
-            self.ser.reset_input_buffer()
-            while True:
-                if self.ser.in_waiting:
-                    rxhead = self.ser.read(2)  # 读取一个字节，作为帧头
-                    if rxhead == RECV_FRAME_HEADER:
-                        rxdata = self.ser.read(7)  # 读取剩下数据字节
-                        self.rx = rxhead + rxdata
-                        print('rx:', ' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
-                        dist = int.from_bytes(self.rx[2:4], byteorder='little')
-                        strength = int.from_bytes(self.rx[4:6], byteorder='little')
-                        temp = int.from_bytes(self.rx[6:8], byteorder='little')
-                        self.widgetslist[self.index].setText(str(dist) + ' (cm)')
-                        print('------------------------------')
-                        if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text != '':
-                            self.labelReturnlist[self.index].setText('OK')
-                            self.labelReturnlist[self.index].setStyleSheet('color: green')
-                            print('Distance is Correct')
-                        elif abs(stddis - dist) <= stddis_diff:
-                            self.labelReturnlist[self.index].setText('OK')
-                            self.labelReturnlist[self.index].setStyleSheet('color: green')
-                            print('Distance is Correct')
-                        else:
-                            self.labelReturnlist[self.index].setText('NG')
-                            self.labelReturnlist[self.index].setStyleSheet('color: red')
-                            print('Distance is Error')
-                        print('std disVal:', stddis, 'actual disVal:', dist)
-                        break
-                    elif (time.time() - start_time) > 1:  # 数据接收超过 1s 都无帧头跳出循环
-                        print('Timeout 1s, rx read 18 bytes')
-                        self.rx = self.ser.read(18)  # 超时读取两个帧来观察
-                        self.labelReturnlist[self.index].setText('NG')
-                        self.labelReturnlist[self.index].setStyleSheet('color: red')
-                        if self.data[self.index]['widget'] == 'QLabel':
-                            self.widgetslist[self.index].setText('')
-                        break
-                else:
-                    if (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
-                        print('Timeout 1s, empty rx')
-                        self.rx = b''
-                        self.labelReturnlist[self.index].setText('NG')
-                        self.labelReturnlist[self.index].setStyleSheet('color: red')
-                        if self.data[self.index]['widget'] == 'QLabel':
-                            self.widgetslist[self.index].setText('')
-                        break
+    def check_UART(self):
+        # 发送指令后对回显检查和接收处理，或检查无需发送指令的雷达配置
+        if self.data[self.index]['cmd'] != '':
+            func.UART.recvData_UART(self)
+            func.UART.recvAnalysis_UART(self)
+            func.UART.recvJudge_UART(self)
         else:
-            print('------------------------------')
-        '''
-    # 根据QLineEdit组件的输入值得到对应的新指令
-    def lineEditCmd(self):
-        '''
-        priCmd = self.data[self.index]['cmd']
-        print('priCmd:', priCmd)
-        priCmdhex_list = priCmd.split()  # 字符串存进一个列表
-        priCmdhead_str = priCmdhex_list[0]  # 帧头
-        priCmdlen_str = priCmdhex_list[1]  # 帧总长度
-        priCmdid_str = priCmdhex_list[2]  # 帧功能码
-        priCmddata_list = priCmdhex_list[3:-1]  # 帧数据段
-        priCmdsum_int = int(priCmdhead_str, 16) + int(priCmdlen_str, 16) + int(priCmdid_str, 16)  # 未加数据段的校验和
-        print('priCmddata_list:', priCmddata_list)
-        '''
+            if self.data[self.index]['name'] == '波特率':
+                func.UART.checkBaud_UART(self)
+            elif self.data[self.index]['name'] == '输出帧率':
+                func.UART.checkFrame_UART(self)
+            elif self.data[self.index]['name'] == '测距结果':
+                func.UART.checkDis_UART(self)
+            else:
+                func.UART.checkOther_UART(self)
 
-        if self.data[self.index]['name'] == '测距结果':
-            inpdisVal = int(self.editVal)  # 获取输入测距值
-            dist_diff = 20
-            rxhead = self.ser.read(2)  # 读取一个字节，作为帧头
-            if rxhead == RECV_FRAME_HEADER:
-                rxdata = self.ser.read(7)  # 读取剩下数据字节
-                self.rx = rxhead + rxdata
-                print('rx:', ' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
-                dist = int.from_bytes(self.rx[2:4], byteorder='little')
-                strength = int.from_bytes(self.rx[4:6], byteorder='little')
-                temp = int.from_bytes(self.rx[6:8], byteorder='little')
-                print('------------------------------')
-                if abs(inpdisVal - dist) <= dist_diff:
-                    self.labelReturnlist[self.index].setText('OK')
-                    self.labelReturnlist[self.index].setStyleSheet('color: green')
-                    print('Distance is Correct')
-                else:
-                    self.labelReturnlist[self.index].setText('NG')
-                    self.labelReturnlist[self.index].setStyleSheet('color: red')
-                    print('Distance is Error')
-            print('input disVal:', inpdisVal, 'actual disVal:', dist)
-            self.newCmd = b''
-        '''
+    def check_IIC(self):
+        if self.data[self.index]['cmd'] != '':
+            func.IIC.recvData_IIC(self)
+            func.IIC.recvAnalysis_IIC(self)
+            func.IIC.recvJudge_IIC(self)
         else:
-            editVal_list = self.editVal.split()  # 将输入值转为一个列表
-            for i in range(len(priCmddata_list)):
-                priCmddata_list[i] = editVal_list[i]
-                print(i, priCmddata_list[i], editVal_list[i])
-            newCmddata_str = ''.join(editVal_list)
-            print(newCmddata_str)
-            newCmdsum_hexstr = hex(priCmdsum_int + sum(int(x, 16) for x in editVal_list))
-            print(newCmdsum_hexstr)
-
-        newCmdsum_str = str(newCmdsum_hexstr)[-2:]  # 取出校验和最后两位字符
-        newCmdstr = priCmdhead_str + priCmdlen_str + priCmdid_str + newCmddata_str + newCmdsum_str  # 连接为更新后的指令字符串
-        self.newCmd = bytes.fromhex(newCmdstr)  # 将指令字符串格式转为串口发送的字节格式
-        print('newCmddata_str:', newCmddata_str)
-        print('newCmdsum_hexstr:', newCmdsum_hexstr, 'newCmdsum_str:', newCmdsum_str)
-        print('newCmdstr:', newCmdstr, 'newCmdbytes:', self.newCmd)
-        print('------------------------------')
-        '''
-    # 根据QComboBox组件的输入值得到对应的新指令
-    def comboBoxCmd(self):
-        priCmd_list = self.data[self.index]['cmd']
-        index = self.widgetslist[self.index].currentIndex()
-        print('priCmd_list:', priCmd_list)
-        comboboxCmd = priCmd_list[index]
-
-        self.newCmd = bytes.fromhex(comboboxCmd)
-        print('index:', index, 'comboboxCmd:', comboboxCmd, 'newCmdbytes:', self.newCmd)
-        print('------------------------------')
+            if self.data[self.index]['name'] == 'I2C从机地址':
+                func.IIC.checkAddress_IIC(self)
+            elif self.data[self.index]['name'] == '测距结果':
+                func.IIC.checkDistance_IIC(self)
+            else:
+                func.IIC.checkOther_IIC(self)
 
     def checkAll(self):
         try:
+            NGflag = False
             self.clearLabel()
             time.sleep(0.5)
-            if self.comboBox_port.currentText() == 'UART':
-                for button in self.buttonlist:
-                    button.click()
-                    QApplication.processEvents()  # 实时更新GUI
-                    time.sleep(0.5)
-
-            elif self.comboBox_port.currentText() == 'IIC':
-                print('IIC')
-            elif self.comboBox_port.currentText() == 'RS485':
-                print('RS485')
-            elif self.comboBox_port.currentText() == 'RS232':
-                print('RS232')
+            for button in self.buttonlist:
+                button.click()
+                if self.comboBox_port.currentText() == 'IIC':
+                    if self.rx == b'':
+                        break
+                QApplication.processEvents()  # 实时更新GUI
+                time.sleep(0.5)
             print('------------------------------')
 
             for label in self.labelReturnlist:  # 轮询返回标签
-                if label.text() == 'OK':
-                    self.label_return.setText('OK')
-                    self.label_return.setStyleSheet('color: green')
-                else:
-                    self.label_return.setText('NG')
-                    self.label_return.setStyleSheet('color: red')
-
+                if label.text() == 'NG':
+                    NGflag = True
+                    break
+            if NGflag is False:
+                self.label_return.setText('OK')
+                self.label_return.setStyleSheet('color: green')
+            else:
+                self.label_return.setText('NG')
+                self.label_return.setStyleSheet('color: red')
 
         except Exception as e:
             print(e)
             print(type(e))
             if type(e) == AttributeError or type(e) == serial.serialutil.PortNotOpenError or type(e) == serial.serialutil.SerialException:
                 QMessageBox.warning(None, 'Error', '串口未连接或读取数据失败！！')
-
-    def checkIIC(self):
-        if self.data[self.index]['name'] == 'I2C从机地址':
-            start_time = time.time()
-            self.ser = serial.Serial()
-            self.ser.port = self.comboBox_serial.currentText()
-            self.ser.baudrate = 9600
-            self.ser.setRTS(False)  # 禁用RTS信号(IIC通信要禁用)
-            self.ser.setDTR(False)  # 禁用DTR信号
-            self.ser.open()
-            time.sleep(0.1)
-            self.ser.reset_input_buffer()  # 清空输入缓存区
-            #self.ser.write(bytes.fromhex('53 20 05 5A 05 00 01 60 50 53 21 09 50'))
-
-            Cmd = '53 W 05 5A 05 00 01 60 50 53 R 09 50'  # IIC测距指令
-            for i in range(0, 128):
-                Whex_i = hex((i << 1) & 0xFE)[2:].zfill(2).upper()  # 左移1位后最后位置0
-                Rhex_i = hex((i << 1) | 0x01)[2:].zfill(2).upper()  # 左移1位后最后位置1
-                NewCmd = Cmd.replace('W', Whex_i).replace('R', Rhex_i)
-                print('i', i, '0xi:',hex(i)[2:].zfill(2), 'Whex_i:',Whex_i, 'Rhex_i:',Rhex_i,'NewCmd:',NewCmd)
-                self.ser.write(bytes.fromhex(NewCmd))
-                time.sleep(0.05)  # 等待 50 ms
-                if self.ser.in_waiting:
-                    rxIIC = self.ser.read(9)
-                    if rxIIC[:2] == RECV_FRAME_HEADER:
-                        print('IIC address is:', hex(i))
-                        self.ser.close()
-                        diff = time.time()-start_time
-                        print('diff:',diff)
-                        break
-            print('------------------------------')
 
     # 保存每次点击按钮收发的数据为列表
     def savelist(self):
@@ -645,13 +376,10 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.rxlist.append(' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
         if self.data[self.index]['widget'] == 'QLabel':
             self.vallist.append(self.widgetslist[self.index].text())
-            self.cmdlist.append(self.data[self.index]['cmd'])
-        elif self.data[self.index]['widget'] == 'QLineEdit':
-            self.vallist.append(self.widgetslist[self.index].text())
-            self.cmdlist.append(' '.join([hex(x)[2:].zfill(2) for x in self.newCmd]))
-        elif self.data[self.index]['widget'] == 'QComboBox':
-            self.vallist.append(self.widgetslist[self.index].currentText())
-            self.cmdlist.append(' '.join([hex(x)[2:].zfill(2) for x in self.newCmd]))
+            if self.comboBox_port.currentText() == 'UART':
+                self.cmdlist.append(self.data[self.index]['cmd'])
+            elif self.comboBox_port.currentText() == 'IIC':
+                self.cmdlist.append(self.IICCmd)
         print(self.namelist, self.stdlist, self.vallist, self.returnlist, self.cmdlist, self.rxlist)
 
     # 保存每次设置的数据到txt文档中
@@ -687,14 +415,6 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         for txt_file in txt_files:
             print(txt_file)
 
-    def test_IIC(self):
-        if self.ser.rts is False:  # IIC转接板卡死复位
-            self.ser.setRTS(True)
-            self.ser.setRTS(False)
-            rx = self.ser.readall()
-            if rx != b'':
-                print(rx.hex())
-            self.ser.close()        
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)  # 创建应用程序对象
