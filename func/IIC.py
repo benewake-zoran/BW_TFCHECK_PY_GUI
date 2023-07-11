@@ -59,7 +59,7 @@ def sendCmd_IIC(self):
             else:
                 NewCmd = NewCmd.replace('LEN2', '05')  # 读取9个字节观察
             self.newCmd = bytes.fromhex(NewCmd)
-            self.IICCmd = NewCmd
+            self.IICCmd = NewCmd  # IIC 指令 str类型
             print('IIC newCmd:', self.IICCmd)
             self.ser.reset_input_buffer()
             self.ser.write(self.newCmd)  # 发送指令

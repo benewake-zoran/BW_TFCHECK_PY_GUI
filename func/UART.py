@@ -1,7 +1,66 @@
 import time
+import serial
+from PyQt5.QtWidgets import QMessageBox
 
 CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
+BAUDRATE = [115200, 9600, 19200, 38400, 57600, 460800, 921600, 256000]  # 定义波特率列表
+
+
+# 从串口接收3次帧头，检查当前波特率接收是否是数据帧
+def checkDataFrame(self):
+    cnt = 0
+    start_time = time.time()  # 记录开始时间
+    while True:
+        try:
+            if self.ser.in_waiting:
+                for i in range(3):
+                    self.ser.reset_input_buffer()
+                    rxdata = self.ser.read(9)  # 读取一个完整的数据帧
+                    print(i, 'rxdata:', rxdata.hex())
+                    if RECV_FRAME_HEADER in rxdata or (rxdata[0] == 0x59 and rxdata[-1] == 0x59):
+                        cnt += 1
+                    self.ser.reset_input_buffer()
+                print('true cnt:', cnt)
+                if cnt > 0:  # 计数器不为零则返回True
+                    return True
+                else:
+                    return False
+            else:
+                if (time.time() - start_time) > 0.1:  # 100ms内串口无数据
+                    print('Timeout, ser has no data')
+                    return False
+
+        except Exception as e:
+            print(type(e))
+            print(e)
+
+
+# 轮询波特率列表
+def pollBaudrate_UART(self):
+    try:
+        for baudrate in BAUDRATE:
+            print('baudrate is:', baudrate)
+            self.ser.baudrate = baudrate
+            if checkDataFrame(self):  # 如果帧头检查正确，返回当前波特率值
+                print('------------------------------')
+                return baudrate
+        self.ser.close()
+        QMessageBox.warning(self, '提示', '串口无法打开，请检查！\n1.可能串口松了\n2.可能被其他程序占用\n3.转接板不支持当前波特率\n4.设备输出关闭')
+
+    except Exception as e:
+        print(type(e))
+        print(e)
+        if type(e) == serial.serialutil.SerialException:  # 如果转接板不支持当前波特率
+            BAUDRATE.remove(baudrate)  # 从波特率列表中移除当前波特率
+            print(BAUDRATE)
+            for baudrate in BAUDRATE:
+                self.ser.baudrate = baudrate
+                if checkDataFrame(self):  # 如果帧头检查正确，返回当前波特率值
+                    print('------------------------------')
+                    return baudrate
+            self.ser.close()
+            QMessageBox.warning(self, '提示', '串口无法打开，请检查！\n1.可能串口松了\n2.可能被其他程序占用\n3.串口选择错误\n4.转接板不支持当前波特率\n5.设备输出关闭')
 
 
 # 发送 JSON 文件中的指令
@@ -132,7 +191,10 @@ def checkFrame_UART(self):
             print('Frame rate: {:.2f} Hz'.format(fps))
             break
     # 判断帧率是否正确
-    stdfps = int(self.data[self.index]['std'])
+    if self.data[self.index]['std'] != '':
+        stdfps = int(self.data[self.index]['std'])
+    else:
+        stdfps = 0
     stdfps_diff = 20
     if abs(fps - stdfps) <= stdfps_diff:
         self.labelReturnlist[self.index].setText('OK')

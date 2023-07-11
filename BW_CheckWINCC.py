@@ -13,6 +13,7 @@ from Ui_CheckWINCC import Ui_MainWindow
 import threading
 import func.UART
 import func.IIC
+import func.MODBUS
 
 CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
@@ -32,6 +33,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.warning_shown = False  # 布尔变量，记录弹窗是否已经存在
 
         self.address = None
+        self.SlaveID = None
+        self.Skipflag = False
 
     # 获取串口列表
     def getSerialPort(self):
@@ -42,60 +45,6 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         else:
             for port in reversed(ports):
                 self.comboBox_serial.addItem(port.device)
-
-    # 从串口接收3次帧头，检查当前波特率接收是否是数据帧
-    def checkDataFrame(self):
-        cnt = 0
-        start_time = time.time()  # 记录开始时间
-        while True:
-            try:
-                if self.ser.in_waiting:
-                    for i in range(3):
-                        self.ser.reset_input_buffer()
-                        rxdata = self.ser.read(9)  # 读取一个完整的数据帧
-                        print(i, 'rxdata:', rxdata.hex())
-                        if RECV_FRAME_HEADER in rxdata or (rxdata[0] == 0x59 and rxdata[-1] == 0x59):
-                            cnt += 1
-                        self.ser.reset_input_buffer()
-                    print('true cnt:', cnt)
-                    if cnt > 0:  # 计数器不为零则返回True
-                        return True
-                    else:
-                        return False
-                else:
-                    if (time.time() - start_time) > 0.1:  # 100ms内串口无数据
-                        print('Timeout, ser has no data')
-                        return False
-
-            except Exception as e:
-                print(type(e))
-                print(e)
-
-    # 轮询波特率列表
-    def pollBaudrate(self):
-        try:
-            for baudrate in BAUDRATE:
-                print('baudrate is:', baudrate)
-                self.ser.baudrate = baudrate
-                if self.checkDataFrame():  # 如果帧头检查正确，返回当前波特率值
-                    print('------------------------------')
-                    return baudrate
-            self.ser.close()
-            QMessageBox.warning(self, '提示', '串口无法打开，请检查！\n1.可能串口松了\n2.可能被其他程序占用\n3.转接板不支持当前波特率\n4.设备输出关闭')
-
-        except Exception as e:
-            print(type(e))
-            print(e)
-            if type(e) == serial.serialutil.SerialException:  # 如果转接板不支持当前波特率
-                BAUDRATE.remove(baudrate)  # 从波特率列表中移除当前波特率
-                print(BAUDRATE)
-                for baudrate in BAUDRATE:
-                    self.ser.baudrate = baudrate
-                    if self.checkDataFrame():  # 如果帧头检查正确，返回当前波特率值
-                        print('------------------------------')
-                        return baudrate
-                self.ser.close()
-                QMessageBox.warning(self, '提示', '串口无法打开，请检查！\n1.可能串口松了\n2.可能被其他程序占用\n3.串口选择错误\n4.转接板不支持当前波特率\n5.设备输出关闭')
 
     # 连接按钮的信号和槽函数
     def connectSerial(self):
@@ -109,11 +58,11 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             self.ser.open()
 
             if self.comboBox_port.currentText() == 'UART':
-                self.ser.baudrate = self.pollBaudrate()  # 通过轮询获取波特率值
+                self.ser.baudrate = func.UART.pollBaudrate_UART(self)  # 通过轮询获取波特率值
             elif self.comboBox_port.currentText() == 'IIC':
                 self.ser.baudrate = 9600
             elif self.comboBox_port.currentText() == 'RS485':
-                print('RS485 baudrate')
+                self.ser.baudrate = 115200  # 默认波特率115200
             elif self.comboBox_port.currentText() == 'RS232':
                 print('RS232 baudrate')
 
@@ -268,6 +217,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             elif self.comboBox_port.currentText() == 'IIC':
                 func.IIC.sendCmd_IIC(self)
                 self.check_IIC()  # 检查IIC对应雷达配置
+            elif self.comboBox_port.currentText() == 'RS485':
+                func.MODBUS.sendCmd_MODBUS(self)
+                self.check_MODBUS()
 
             self.timer.start(100)  # 启动计时器为100毫秒
             self.savelist()
@@ -337,19 +289,35 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             else:
                 func.IIC.checkOther_IIC(self)
 
+    def check_MODBUS(self):
+        if self.data[self.index]['cmd'] != '':
+            func.MODBUS.recvData_MODBUS(self)
+            func.MODBUS.recvAnalysis_MODBUS(self)
+            func.MODBUS.recvJudge_MODBUS(self)
+        else:
+            if self.data[self.index]['name'] == 'Slave ID':
+                func.MODBUS.checkSlaveID_MODBUS(self)
+            elif self.data[self.index]['name'] == '波特率':
+                func.MODBUS.checkBaud_MODBUS(self)
+            elif self.data[self.index]['name'] == '输出帧率':
+                if self.Skipflag is False:
+                    func.MODBUS.checkFramerate_MODBUS(self)
+
     def checkAll(self):
         try:
             NGflag = False
+            self.Skipflag = True
             self.clearLabel()
             time.sleep(0.5)
             for button in self.buttonlist:
                 button.click()
-                if self.comboBox_port.currentText() == 'IIC':
+                if self.comboBox_port.currentText() == 'IIC' or self.comboBox_port.currentText() == 'RS485':
                     if self.rx == b'':
                         break
                 QApplication.processEvents()  # 实时更新GUI
                 time.sleep(0.5)
             print('------------------------------')
+            self.Skipflag = False
 
             for label in self.labelReturnlist:  # 轮询返回标签
                 if label.text() == 'NG':
@@ -380,6 +348,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                 self.cmdlist.append(self.data[self.index]['cmd'])
             elif self.comboBox_port.currentText() == 'IIC':
                 self.cmdlist.append(self.IICCmd)
+            elif self.comboBox_port.currentText() == 'RS485':
+                self.cmdlist.append(' '.join([hex(x)[2:].zfill(2) for x in self.MODBUSCmd]))
         print(self.namelist, self.stdlist, self.vallist, self.returnlist, self.cmdlist, self.rxlist)
 
     # 保存每次设置的数据到txt文档中
