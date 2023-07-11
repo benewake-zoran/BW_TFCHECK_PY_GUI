@@ -10,6 +10,7 @@ DIS_DIFF = 20
 FPS_DIFF = 20
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
 
+
 # 定义Modbus CRC16校验码生成函数
 def ModbusCRC16(data):
     crc16 = crcmod.predefined.Crc('modbus')  # 创建一个CRC校验对象
@@ -108,9 +109,9 @@ def recvData_MODBUS(self):
                 rxdata = self.ser.readall()
                 self.rx = rxhead + rxdata
                 print('self.rx:', self.rx.hex())
-                #self.labelReturnlist[self.index].setText('NG')
-                #self.labelReturnlist[self.index].setStyleSheet('color: red')
-                #if self.data[self.index]['widget'] == 'QLabel':
+                # self.labelReturnlist[self.index].setText('NG')
+                # self.labelReturnlist[self.index].setStyleSheet('color: red')
+                # if self.data[self.index]['widget'] == 'QLabel':
                 #    self.widgetslist[self.index].setText('')
                 break
 
@@ -189,7 +190,7 @@ def recvJudge_MODBUS(self):
                 self.labelReturnlist[self.index].setText('OK')
                 self.labelReturnlist[self.index].setStyleSheet('color: green')
                 print('Distance is Correct')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].text():
+        elif self.data[self.index]['std'] == self.widgetslist[self.index].text() and self.widgetslist[self.index].text() != '':
             self.labelReturnlist[self.index].setText('OK')
             self.labelReturnlist[self.index].setStyleSheet('color: green')
         else:
@@ -322,3 +323,11 @@ def checkFramerate_MODBUS(self):
     self.rx = b''
     self.MODBUSCmd = b''
     print('------------------------------')
+
+
+def checkOther_MODBUS(self):
+    if self.SlaveID is None:
+        self.ser.baudrate, self.SlaveID = pollBaudID_MODBUS(self)
+        text = 'B:' + str(self.ser.baudrate) + ' ID:' + self.SlaveID
+        self.widgetslist[self.index].setText(text)
+    recvJudge_MODBUS(self)

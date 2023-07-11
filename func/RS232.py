@@ -37,7 +37,7 @@ def checkDataFrame(self):
 
 
 # 轮询波特率列表
-def pollBaudrate_UART(self):
+def pollBaudrate_RS232(self):
     try:
         for baudrate in BAUDRATE:
             print('baudrate is:', baudrate)
@@ -64,7 +64,7 @@ def pollBaudrate_UART(self):
 
 
 # 发送 JSON 文件中的指令
-def sendCmd_UART(self):
+def sendCmd_RS232(self):
     if self.data[self.index]['widget'] == 'QLabel':
         print('send cmd:', self.data[self.index]['cmd'])  # 获取对应的指令
         if self.data[self.index]['cmd'] != '':  # 判断指令是否为空
@@ -76,7 +76,7 @@ def sendCmd_UART(self):
 
 
 # 发送指令后接收指令回显并判断 5A 帧头
-def recvData_UART(self):
+def recvData_RS232(self):
     start_time = time.time()  # 记录开始时间
     while True:
         if self.ser.in_waiting:  # 如果串口有数据接收
@@ -112,10 +112,10 @@ def recvData_UART(self):
 
 
 # 根据配置标签名称对rx进行处理和回显正误判断
-def recvAnalysis_UART(self):
+def recvAnalysis_RS232(self):
     if self.data[self.index]['name'] == '序列号':
-        if self.rx[2] == 0x12:
-            SN_rxhex = self.rx[3:17]
+        if self.rx[2] == 0x56:
+            SN_rxhex = self.rx[4:18]
             SN_rxstr = ''.join([chr(x) for x in SN_rxhex])
             self.widgetslist[self.index].setText(SN_rxstr)
             print('序列号是：', SN_rxstr)
@@ -133,12 +133,12 @@ def recvAnalysis_UART(self):
 
 
 # 判断期望值和检查值是否相同
-def recvJudge_UART(self):
+def recvJudge_RS232(self):
     if self.data[self.index]['widget'] == 'QLabel' or self.data[self.index]['widget'] == 'QLineEdit':
         if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text() != '':
             self.labelReturnlist[self.index].setText('OK')
             self.labelReturnlist[self.index].setStyleSheet('color: green')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].text() and self.widgetslist[self.index].text() != '':
+        elif self.data[self.index]['std'] == self.widgetslist[self.index].text():
             self.labelReturnlist[self.index].setText('OK')
             self.labelReturnlist[self.index].setStyleSheet('color: green')
         else:
@@ -157,10 +157,7 @@ def recvJudge_UART(self):
 
 
 # 检查波特率
-def checkBaud_UART(self):
-    self.ser.reset_input_buffer()
-    self.ser.baudrate = pollBaudrate_UART(self)
-    time.sleep(0.1)
+def checkBaud_RS232(self):
     self.widgetslist[self.index].setText(str(self.ser.baudrate))
     baud = str(self.ser.baudrate)
     stdbaud = self.data[self.index]['std']
@@ -178,7 +175,7 @@ def checkBaud_UART(self):
 
 
 # 检查输出帧率
-def checkFrame_UART(self):
+def checkFrame_RS232(self):
     # 计算帧率
     self.ser.reset_input_buffer()
     start_time = time.time()
@@ -213,7 +210,7 @@ def checkFrame_UART(self):
 
 
 # 检查测距
-def checkDis_UART(self):
+def checkDis_RS232(self):
     if self.data[self.index]['std'] != '':
         stddis = int(self.data[self.index]['std'])
     else:
@@ -265,7 +262,7 @@ def checkDis_UART(self):
 
 
 # 检查其他标签
-def checkOther_UART(self):
+def checkOther_RS232(self):
     start_time = time.time()  # 记录开始时间
     self.ser.reset_input_buffer()
     while True:

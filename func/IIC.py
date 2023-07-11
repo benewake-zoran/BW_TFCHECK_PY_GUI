@@ -144,7 +144,7 @@ def recvJudge_IIC(self):
         if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text() != '':
             self.labelReturnlist[self.index].setText('OK')
             self.labelReturnlist[self.index].setStyleSheet('color: green')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].text():
+        elif self.data[self.index]['std'] == self.widgetslist[self.index].text() and self.widgetslist[self.index].text() != '':
             self.labelReturnlist[self.index].setText('OK')
             self.labelReturnlist[self.index].setStyleSheet('color: green')
         else:

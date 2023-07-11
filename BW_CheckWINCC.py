@@ -14,6 +14,7 @@ import threading
 import func.UART
 import func.IIC
 import func.MODBUS
+import func.RS232
 
 CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
@@ -35,6 +36,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.address = None
         self.SlaveID = None
         self.Skipflag = False
+        self.rx = b''
+        self.IICCmd = ''
+        self.MODBUSCmd = b''
 
     # 获取串口列表
     def getSerialPort(self):
@@ -64,7 +68,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             elif self.comboBox_port.currentText() == 'RS485':
                 self.ser.baudrate = 115200  # 默认波特率115200
             elif self.comboBox_port.currentText() == 'RS232':
-                print('RS232 baudrate')
+                self.ser.baudrate = func.RS232.pollBaudrate_RS232(self)
 
             print('seclect port is:', select_port)
             print('baudrate is:', self.ser.baudrate)
@@ -108,6 +112,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             print('refresh serial port')
             print('------------------------------')
             self.clearLabel()
+            self.rx = b''
+
         except Exception as e:
             print(type(e))
             print(e)
@@ -220,6 +226,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             elif self.comboBox_port.currentText() == 'RS485':
                 func.MODBUS.sendCmd_MODBUS(self)
                 self.check_MODBUS()
+            elif self.comboBox_port.currentText() == 'RS232':
+                func.RS232.sendCmd_RS232(self)
+                self.check_RS232()
 
             self.timer.start(100)  # 启动计时器为100毫秒
             self.savelist()
@@ -238,8 +247,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             elif type(e) == ValueError or type(e) == IndexError:
                 if self.data[self.index]['widget'] != 'QLabel':
                     QMessageBox.warning(None, 'Error', '检查输入值！')
-            else:
-                QMessageBox.warning(None, 'Error', str(e))  # 可注释
+            # else:
+                # QMessageBox.warning(None, 'Error', str(e))  # 可注释
 
     # 清除组件标签内容以及返回标签内容
     def clearLabel(self):
@@ -302,6 +311,23 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             elif self.data[self.index]['name'] == '输出帧率':
                 if self.Skipflag is False:
                     func.MODBUS.checkFramerate_MODBUS(self)
+            else:
+                func.MODBUS.checkOther_MODBUS(self)
+
+    def check_RS232(self):
+        if self.data[self.index]['cmd'] != '':
+            func.RS232.recvData_RS232(self)
+            func.RS232.recvAnalysis_RS232(self)
+            func.RS232.recvJudge_RS232(self)
+        else:
+            if self.data[self.index]['name'] == '波特率':
+                func.RS232.checkBaud_RS232(self)
+            elif self.data[self.index]['name'] == '输出帧率':
+                func.RS232.checkFrame_RS232(self)
+            elif self.data[self.index]['name'] == '测距结果':
+                func.RS232.checkDis_RS232(self)
+            else:
+                func.RS232.checkOther_RS232(self)
 
     def checkAll(self):
         try:
@@ -344,7 +370,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.rxlist.append(' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
         if self.data[self.index]['widget'] == 'QLabel':
             self.vallist.append(self.widgetslist[self.index].text())
-            if self.comboBox_port.currentText() == 'UART':
+            if self.comboBox_port.currentText() == 'UART' or self.comboBox_port.currentText() == 'RS232':
                 self.cmdlist.append(self.data[self.index]['cmd'])
             elif self.comboBox_port.currentText() == 'IIC':
                 self.cmdlist.append(self.IICCmd)
