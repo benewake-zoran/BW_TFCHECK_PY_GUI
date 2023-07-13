@@ -1,0 +1,9 @@
+[
+    {"id": 0, "name": "序列号", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 12 70"},
+    {"id": 1, "name": "固件版本", "widget": "QLabel", "button": "检查", "std": "2.4.11", "cmd": "5A 04 01 5F"},
+    {"id": 2, "name": "输出帧率", "widget": "QLabel", "button": "检查", "std": "100", "cmd": ""},
+    {"id": 3, "name": "测距结果", "widget": "QLabel", "button": "检查", "std": "170", "cmd": ""},
+    {"id": 4, "name": "测试有cmd", "widget": "QLabel", "button": "检查", "std": "5A ", "cmd": "5A 04 11 6F"},
+    {"id": 5, "name": "测试无cmd", "widget": "QLabel", "button": "检查", "std": "", "cmd": ""}
+
+]

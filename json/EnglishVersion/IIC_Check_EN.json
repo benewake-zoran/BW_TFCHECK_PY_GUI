@@ -1,0 +1,7 @@
+[
+    {"id": 0, "name": "SerialNumber", "widget": "QLabel", "button": "Check", "std": "", "cmd": "5A 04 12 70"},
+    {"id": 1, "name": "I2C Address", "widget": "QLabel", "button": "Check", "std": "0x10", "cmd": ""},
+    {"id": 2, "name": "FirmwareVer", "widget": "QLabel", "button": "Check", "std": "2.4.11", "cmd": "5A 04 01 5F"},
+    {"id": 3, "name": "RangingResult", "widget": "QLabel", "button": "Check", "std": "170", "cmd": ""}
+]
+

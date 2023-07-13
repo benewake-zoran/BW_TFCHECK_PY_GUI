@@ -1,0 +1,8 @@
+[
+    {"id": 0, "name": "SerialNumber", "widget": "QLabel", "button": "Check", "std": "", "cmd": "5A 05 56 00 B5"},
+    {"id": 1, "name": "FirmwareVer", "widget": "QLabel", "button": "Check", "std": "2.4.11", "cmd": "5A 04 01 5F"},
+    {"id": 2, "name": "FrameRate", "widget": "QLabel", "button": "Check", "std": "100", "cmd": ""},
+    {"id": 3, "name": "RangingResult", "widget": "QLabel", "button": "Check", "std": "170", "cmd": ""}
+    
+]
+

@@ -6,11 +6,10 @@ import datetime
 import serial
 import serial.tools.list_ports
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QVBoxLayout, QWidget, QMessageBox
-from PyQt5.QtCore import QTimer, QFile, QTextStream
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QWidget, QMessageBox
+from PyQt5.QtCore import QTimer, QTranslator
 from PyQt5.QtGui import QFont
 from Ui_CheckWINCC import Ui_MainWindow
-import threading
 import func.UART
 import func.IIC
 import func.MODBUS
@@ -18,7 +17,6 @@ import func.RS232
 
 CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
-BAUDRATE = [115200, 9600, 19200, 38400, 57600, 460800, 921600, 256000]  # 定义波特率列表
 
 
 class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Maindow界面类
@@ -31,7 +29,6 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.returnlist = []  # 初始化点击按钮对应操作结果的列表
         self.cmdlist = []  # 初始化点击按钮对应发送指令的列表
         self.rxlist = []  # 初始化点击按钮对应接收指令的列表
-        self.warning_shown = False  # 布尔变量，记录弹窗是否已经存在
 
         self.address = None
         self.SlaveID = None
@@ -40,11 +37,14 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.IICCmd = ''
         self.MODBUSCmd = b''
 
+        self.trans = QTranslator()  # 翻译家
+        self.ENFlag = False  # 英文界面标识
+
     # 获取串口列表
     def getSerialPort(self):
         ports = serial.tools.list_ports.comports()
         if len(ports) == 0:
-            self.comboBox_serial.addItem("-- 无串口 --")
+            self.comboBox_serial.addItem("None")
             self.pushButton_connect.setEnabled(False)
         else:
             for port in reversed(ports):
@@ -56,34 +56,34 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             self.ser = serial.Serial()
             select_port = self.comboBox_serial.currentText()  # 获取串口下拉列表值
             self.ser.port = select_port
-            self.ser.timeout = 2
+            self.ser.baudrate = self.comboBox_baud.currentText()  # 获取波特率下拉列表值
+            self.ser.timeout = 1
             self.ser.setRTS(False)  # 禁用RTS信号(IIC通信要禁用)
             self.ser.setDTR(False)
             self.ser.open()
 
-            if self.comboBox_port.currentText() == 'UART':
-                self.ser.baudrate = func.UART.pollBaudrate_UART(self)  # 通过轮询获取波特率值
-            elif self.comboBox_port.currentText() == 'IIC':
-                self.ser.baudrate = 9600
-            elif self.comboBox_port.currentText() == 'RS485':
-                self.ser.baudrate = 115200  # 默认波特率115200
-            elif self.comboBox_port.currentText() == 'RS232':
-                self.ser.baudrate = func.RS232.pollBaudrate_RS232(self)
-
             print('seclect port is:', select_port)
             print('baudrate is:', self.ser.baudrate)
             # 串口连接按钮状态转换
-            if self.pushButton_connect.text() == '连接串口':
-                self.pushButton_connect.setText('已连接')
+            if self.pushButton_connect.text() == '连接' or self.pushButton_connect.text() == 'connect':
+                if self.ENFlag is False:
+                    self.pushButton_connect.setText('已连接')
+                elif self.ENFlag is True:
+                    self.pushButton_connect.setText('connecting')
                 self.pushButton_connect.setStyleSheet("background-color: yellow")
                 self.comboBox_serial.setDisabled(True)
                 self.comboBox_port.setDisabled(True)
+                self.comboBox_baud.setDisabled(True)
                 print('serial port is open')
             else:
-                self.pushButton_connect.setText('连接串口')
+                if self.ENFlag is False:
+                    self.pushButton_connect.setText('连接')
+                elif self.ENFlag is True:
+                    self.pushButton_connect.setText('connect')
                 self.pushButton_connect.setStyleSheet("background-color: none")
                 self.comboBox_serial.setDisabled(False)
                 self.comboBox_port.setDisabled(False)
+                self.comboBox_baud.setDisabled(False)
                 self.ser.close()
                 print('serial port is close')
             print('------------------------------')
@@ -92,7 +92,10 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             print(type(e))
             print(e)
             if type(e) == serial.serialutil.SerialException:
-                QMessageBox.warning(self, '提示', '串口无法打开，请检查！\n1.可能串口松了\n2.可能被其他程序占用\n3.转接板不支持当前波特率\n4.设备输出关闭')
+                if self.ENFlag is False:
+                    QMessageBox.warning(self, '提示', '串口无法打开，请检查！\n1.可能串口松了\n2.可能被其他程序占用\n3.转接板不支持当前波特率')
+                elif self.ENFlag is True:
+                    QMessageBox.warning(self, 'Warning', 'The serial port cannot be opened. Please check!\n1.Maybe the serial port is loose.\n2.May be used by other programs.\n3.May be the switch board does not support the current baud rate.')
 
     # 刷新按钮的信号和槽函数
     def refreshSerial(self):
@@ -100,11 +103,15 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             self.pushButton_connect.setEnabled(True)
             self.comboBox_serial.clear()
             myWin.getSerialPort()  # 获取串口列表
-            if self.pushButton_connect.text() == '已连接':
-                self.pushButton_connect.setText('连接串口')
+            if self.pushButton_connect.text() == '已连接' or self.pushButton_connect.text() == 'connecting':
+                if self.ENFlag is False:
+                    self.pushButton_connect.setText('连接')
+                elif self.ENFlag is True:
+                    self.pushButton_connect.setText('connect')
                 self.pushButton_connect.setStyleSheet("background-color: none")
                 self.comboBox_serial.setDisabled(False)
                 self.comboBox_port.setDisabled(False)
+                self.comboBox_baud.setDisabled(False)
                 if self.comboBox_port.currentText() == 'IIC':
                     func.IIC.refresh_IIC(self)  # 复位IIC转接板
                 self.ser.close()
@@ -114,6 +121,36 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             self.clearLabel()
             self.rx = b''
 
+        except Exception as e:
+            print(type(e))
+            print(e)
+
+    # 菜单栏下切换为中文界面
+    def trigger_actChinese(self):
+        try:
+            self.pushButton_refresh.click()
+            print('trigger actChinese')
+            self.trans.load('translate/zh_CN')
+            _app = QApplication.instance()  # 获取 app 实例
+            _app.installTranslator(self.trans)
+            self.retranslateUi(self)  # 重新翻译 Ui 界面
+            self.ENFlag = False
+            self.actionOpen.trigger()
+        except Exception as e:
+            print(type(e))
+            print(e)
+
+    # 菜单栏下切换为英文界面
+    def trigger_actEnglish(self):
+        try:
+            self.pushButton_refresh.click()
+            print('trigger actEnglish')
+            self.trans.load('translate/EN')
+            _app = QApplication.instance()
+            _app.installTranslator(self.trans)
+            self.retranslateUi(self)
+            self.ENFlag = True
+            self.actionOpen.trigger()
         except Exception as e:
             print(type(e))
             print(e)
@@ -153,11 +190,14 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                     layout.addWidget(labelName, item['id'], 0)  # 第一列为检查项的名称
                     self.labellist.append(labelName)
 
-                    labelStd = QtWidgets.QLabel('期望值:' + item['std'], self)
+                    if self.ENFlag is False:
+                        labelStd = QtWidgets.QLabel('期望值:' + item['std'], self)
+                        labelCheck = QtWidgets.QLabel('检查值:', self)
+                    elif self.ENFlag is True:
+                        labelStd = QtWidgets.QLabel('StdVal:' + item['std'], self)
+                        labelCheck = QtWidgets.QLabel('CheckVal:', self)
                     layout.addWidget(labelStd, item['id'], 1)  # 第二列为期望值
                     self.labelStdlist.append(labelStd)
-
-                    labelCheck = QtWidgets.QLabel('检查值:', self)
                     layout.addWidget(labelCheck, item['id'], 2)  # 第三列为检查值
                     self.labelChecklist.append(labelCheck)
 
@@ -231,8 +271,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                 self.check_RS232()
 
             self.timer.start(100)  # 启动计时器为100毫秒
-            self.savelist()
-            self.saveSetting()
+            # self.savelist()
+            # self.saveSetting()
 
         except Exception as e:
             print(e)
@@ -242,13 +282,11 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             if self.data[self.index]['widget'] == 'QLabel':
                 self.widgetslist[self.index].setText('')
             if type(e) == AttributeError or type(e) == serial.serialutil.PortNotOpenError or type(e) == serial.serialutil.SerialException:
-                QMessageBox.warning(None, 'Error', '串口未连接或读取数据失败！')
+                if self.ENFlag is False:
+                    QMessageBox.warning(None, 'Error', '串口未连接或读取数据失败！')
+                elif self.ENFlag is True:
+                    QMessageBox.warning(None, 'Error', 'The serial port is not connected or data fails to be read.')
                 print(e)
-            elif type(e) == ValueError or type(e) == IndexError:
-                if self.data[self.index]['widget'] != 'QLabel':
-                    QMessageBox.warning(None, 'Error', '检查输入值！')
-            # else:
-                # QMessageBox.warning(None, 'Error', str(e))  # 可注释
 
     # 清除组件标签内容以及返回标签内容
     def clearLabel(self):
@@ -276,11 +314,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             func.UART.recvAnalysis_UART(self)
             func.UART.recvJudge_UART(self)
         else:
-            if self.data[self.index]['name'] == '波特率':
-                func.UART.checkBaud_UART(self)
-            elif self.data[self.index]['name'] == '输出帧率':
+            if self.data[self.index]['name'] == '输出帧率' or self.data[self.index]['name'] == 'FrameRate':
                 func.UART.checkFrame_UART(self)
-            elif self.data[self.index]['name'] == '测距结果':
+            elif self.data[self.index]['name'] == '测距结果' or self.data[self.index]['name'] == 'RangingResult':
                 func.UART.checkDis_UART(self)
             else:
                 func.UART.checkOther_UART(self)
@@ -291,9 +327,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             func.IIC.recvAnalysis_IIC(self)
             func.IIC.recvJudge_IIC(self)
         else:
-            if self.data[self.index]['name'] == 'I2C从机地址':
+            if self.data[self.index]['name'] == 'I2C从机地址' or self.data[self.index]['name'] == 'I2C Address':
                 func.IIC.checkAddress_IIC(self)
-            elif self.data[self.index]['name'] == '测距结果':
+            elif self.data[self.index]['name'] == '测距结果' or self.data[self.index]['name'] == 'RangingResult':
                 func.IIC.checkDistance_IIC(self)
             else:
                 func.IIC.checkOther_IIC(self)
@@ -304,11 +340,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             func.MODBUS.recvAnalysis_MODBUS(self)
             func.MODBUS.recvJudge_MODBUS(self)
         else:
-            if self.data[self.index]['name'] == 'Slave ID':
+            if self.data[self.index]['name'] == 'SlaveID':
                 func.MODBUS.checkSlaveID_MODBUS(self)
-            elif self.data[self.index]['name'] == '波特率':
-                func.MODBUS.checkBaud_MODBUS(self)
-            elif self.data[self.index]['name'] == '输出帧率':
+            elif self.data[self.index]['name'] == '输出帧率' or self.data[self.index]['name'] == 'FrameRate':
                 if self.Skipflag is False:
                     func.MODBUS.checkFramerate_MODBUS(self)
             else:
@@ -320,28 +354,27 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             func.RS232.recvAnalysis_RS232(self)
             func.RS232.recvJudge_RS232(self)
         else:
-            if self.data[self.index]['name'] == '波特率':
-                func.RS232.checkBaud_RS232(self)
-            elif self.data[self.index]['name'] == '输出帧率':
+            if self.data[self.index]['name'] == '输出帧率' or self.data[self.index]['name'] == 'FrameRate':
                 func.RS232.checkFrame_RS232(self)
-            elif self.data[self.index]['name'] == '测距结果':
+            elif self.data[self.index]['name'] == '测距结果' or self.data[self.index]['name'] == 'RangingResult':
                 func.RS232.checkDis_RS232(self)
             else:
                 func.RS232.checkOther_RS232(self)
 
     def checkAll(self):
         try:
+            self.clearlist()
             NGflag = False
             self.Skipflag = True
             self.clearLabel()
             time.sleep(0.5)
             for button in self.buttonlist:
                 button.click()
-                if self.comboBox_port.currentText() == 'IIC' or self.comboBox_port.currentText() == 'RS485':
-                    if self.rx == b'':
-                        break
                 QApplication.processEvents()  # 实时更新GUI
                 time.sleep(0.5)
+                self.savelist()  # 保存检查结果
+                if self.widgetslist[self.index].text() == '':
+                    break
             print('------------------------------')
             self.Skipflag = False
 
@@ -356,11 +389,21 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                 self.label_return.setText('NG')
                 self.label_return.setStyleSheet('color: red')
 
+            self.gettxtname()  # 搜素文件夹下的 txt 文件
+            self.saveSetting()  # 将检查的数据写入到 txt 文件中
+
         except Exception as e:
             print(e)
             print(type(e))
-            if type(e) == AttributeError or type(e) == serial.serialutil.PortNotOpenError or type(e) == serial.serialutil.SerialException:
-                QMessageBox.warning(None, 'Error', '串口未连接或读取数据失败！！')
+
+    # 清空 txt 文档的数据
+    def clearlist(self):
+        self.namelist = []
+        self.stdlist = []
+        self.vallist = []
+        self.returnlist = []
+        self.cmdlist = []
+        self.rxlist = []
 
     # 保存每次点击按钮收发的数据为列表
     def savelist(self):
@@ -380,16 +423,34 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
 
     # 保存每次设置的数据到txt文档中
     def saveSetting(self):
-        # 定义txt文件名
-        file_name = '{:03d}.txt'.format(self.lentxt + 1)
+        if '序列号' in self.namelist and self.ENFlag is False:
+            index = self.namelist.index('序列号')
+            SN = self.vallist[index]
+            print('save SN:', SN)
+            # 定义txt文件名
+            file_name = SN + '_' + self.label_return.text() + '_' + '{:03d}.txt'.format(self.lentxt + 1)
+        elif 'SerialNumber' in self.namelist and self.ENFlag is True:
+            index = self.namelist.index('SerialNumber')
+            SN = self.vallist[index]
+            file_name = SN + '_' + self.label_return.text() + '_' + '{:03d}.txt'.format(self.lentxt + 1)
+        elif 'SlaveID' in self.namelist:
+            index = self.namelist.index('SlaveID')
+            ID = self.vallist[index]
+            print('save ID:', ID)
+            file_name = 'RS485_ID_' + ID + '_' + self.label_return.text() + '_' + '{:03d}.txt'.format(self.lentxt + 1)
         # 定义待保存的文件路径（在新建的文件夹下）
         file_path = os.path.join(self.dir_path, file_name)
         # 打开文件写入数据
         with open(file_path, 'w') as f:
             for i in range(len(self.namelist)):
-                f.write(self.namelist[i] + ': ' + '  期望值：' + self.stdlist[i] + '  检查值：' + self.vallist[i] + '    结果: ' + self.returnlist[i] + '\n' +
-                        '发送cmd: ' + self.cmdlist[i].upper() + '\n' + '接收cmd: ' + self.rxlist[i].upper() + '\n' +
-                        '------------------------------' + '\n')
+                if self.ENFlag is False:
+                    f.write(self.namelist[i] + ': ' + '  期望值：' + self.stdlist[i] + '  检查值：' + self.vallist[i] + '    结果: ' + self.returnlist[i] + '\n' +
+                            '发送cmd: ' + self.cmdlist[i].upper() + '\n' + '接收cmd: ' + self.rxlist[i].upper() + '\n' +
+                            '------------------------------' + '\n')
+                elif self.ENFlag is True:
+                    f.write(self.namelist[i] + ': ' + '  StdVal: ' + self.stdlist[i] + '  CheckVal: ' + self.vallist[i] + '    Result: ' + self.returnlist[i] + '\n' +
+                            'Send cmd: ' + self.cmdlist[i].upper() + '\n' + 'Receive cmd: ' + self.rxlist[i].upper() + '\n' +
+                            '------------------------------' + '\n')
         f.close()
 
     # 创建以当前日期命名的文件夹，检查当前目录下的txt文档，并获取要创建的txt文档的名称
@@ -410,13 +471,14 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         print("当前文件夹下有%d个txt文件:" % self.lentxt)
         for txt_file in txt_files:
             print(txt_file)
+        print('------------------------------')
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)  # 创建应用程序对象
-    myWin = MyMainWindow()  # 实例化 MyMainWindow 类，创建主窗口
+    myWin = MyMainWindow()  # 实例化 MyMainWindow 类为 myWin，创建主窗口
     myWin.show()  # 在桌面显示控件 myWin
     myWin.getSerialPort()  # 获取串口列表
-    myWin.gettxtname()  # 获取创建的txt文档的名称
+    # myWin.gettxtname()  # 获取创建的txt文档的名称
 
     sys.exit(app.exec_())  # 在主线程中退出

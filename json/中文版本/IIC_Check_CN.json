@@ -1,0 +1,7 @@
+[
+    {"id": 0, "name": "序列号", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 12 70"},
+    {"id": 1, "name": "I2C从机地址", "widget": "QLabel", "button": "检查", "std": "0x10", "cmd": ""},
+    {"id": 2, "name": "固件版本", "widget": "QLabel", "button": "检查", "std": "2.4.11", "cmd": "5A 04 01 5F"},
+    {"id": 3, "name": "测距结果", "widget": "QLabel", "button": "检查", "std": "170", "cmd": ""}
+]
+

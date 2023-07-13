@@ -1,9 +1,0 @@
-[
-    {"id": 0, "name": "波特率", "widget": "QLabel", "button": "检查", "std": "115200", "cmd": ""},
-    {"id": 1, "name": "序列号", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 12 70"},
-    {"id": 2, "name": "固件版本", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 01 5F"},
-    {"id": 3, "name": "输出帧率", "widget": "QLabel", "button": "检查", "std": "100", "cmd": ""},
-    {"id": 4, "name": "测距结果", "widget": "QLabel", "button": "检查", "std": "170", "cmd": ""}
-    
-]
-

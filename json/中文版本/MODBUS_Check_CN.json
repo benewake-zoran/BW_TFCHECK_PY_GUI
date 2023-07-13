@@ -1,0 +1,9 @@
+[
+    {"id": 0, "name": "Slave ID", "widget": "QLabel", "button": "检查", "std": "0x03", "cmd": ""},
+    {"id": 1, "name": "固件版本", "widget": "QLabel", "button": "检查", "std": "3.2.28", "cmd": "ADDR 03 00 06 00 02"},
+    {"id": 2, "name": "测距结果", "widget": "QLabel", "button": "检查", "std": "170", "cmd": "ADDR 03 00 00 00 01"},
+    {"id": 3, "name": "测试强度", "widget": "QLabel", "button": "检查", "std": "", "cmd": "ADDR 03 00 01 00 01"},
+    {"id": 4, "name": "测试结果", "widget": "QLabel", "button": "检查", "std": "", "cmd": "ADDR 03 00 00 00 02"},
+    {"id": 5, "name": "输出帧率", "widget": "QLabel", "button": "检查", "std": "", "cmd": ""}
+]
+
