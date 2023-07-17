@@ -163,7 +163,7 @@ def recvAnalysis_MODBUS(self):
             text = 'D=' + str(dist) + ';S=' + str(strength)
             self.widgetslist[self.index].setText(text)
     elif self.data[self.index]['widget'] == 'QLabel':
-        self.widgetslist[self.index].setText(' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
+        self.widgetslist[self.index].setText(' '.join([hex(x)[2:].zfill(2) for x in self.rx]).upper())
 
 
 # 判断期望值和检查值是否相同(方法同UART)

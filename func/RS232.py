@@ -64,7 +64,7 @@ def recvAnalysis_RS232(self):
             print('固件版本是：', version_rxstr)
             print('------------------------------')
     elif self.data[self.index]['widget'] == 'QLabel':
-        self.widgetslist[self.index].setText(' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
+        self.widgetslist[self.index].setText(' '.join([hex(x)[2:].zfill(2) for x in self.rx]).upper())
 
 
 # 判断期望值和检查值是否相同

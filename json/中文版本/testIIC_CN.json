@@ -5,5 +5,4 @@
     {"id": 3, "name": "测距结果", "widget": "QLabel", "button": "检查", "std": "170", "cmd": ""},
     {"id": 4, "name": "测试有cmd", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 11 6F"},
     {"id": 5, "name": "测试无cmd", "widget": "QLabel", "button": "检查", "std": "", "cmd": ""}
-
 ]
