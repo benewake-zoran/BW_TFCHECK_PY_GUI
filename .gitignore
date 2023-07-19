@@ -5,3 +5,5 @@ dist/
 func/__pycache__/
 test.json
 testIIC.json
+checktest.json
+UART_Set_CN_test.json

@@ -21,7 +21,7 @@ def pollAddress_IIC(self):
             rxIIC = self.ser.read(9)
             print('poll address rxIIC:', rxIIC.hex())
             if rxIIC[:2] == RECV_FRAME_HEADER:
-                #self.address = hex(i)
+                # self.address = hex(i)
                 self.address = '0x{:02}'.format(hex(i)[2:].zfill(2).upper())
                 self.rx = rxIIC
                 self.IICCmd = NewCmd
@@ -88,8 +88,8 @@ def recvData_IIC(self):
                 print('rx head is not 5A')
                 self.rx = rxhead + self.ser.readall()  # 读取串口所有数据来观察
                 break
-        elif (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
-            print('time out 1s, try to poll address')
+        elif (time.time() - start_time) > 3:  # 超过 3s 都无数据接收跳出循环
+            print('time out 3s, try to poll address')
             pollAddress_IIC(self)  # 尝试再次轮询地址,看是否是发送指令的读写地址位错误
             sendCmd_IIC(self)  # 轮询地址后再次尝试发送指令
             time.sleep(0.5)

@@ -15,6 +15,8 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(594, 653)
+        MainWindow.setMinimumSize(QtCore.QSize(0, 653))
+        MainWindow.setMaximumSize(QtCore.QSize(16777215, 653))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("d:\\北醒资料\\Benewake_CheckWINCC\\BenewakeLogo.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -142,7 +144,7 @@ class Ui_MainWindow(object):
         self.comboBox_baud.setItemText(5, _translate("MainWindow", "256000"))
         self.comboBox_baud.setItemText(6, _translate("MainWindow", "460800"))
         self.comboBox_baud.setItemText(7, _translate("MainWindow", "921600"))
-        self.pushButton_check.setText(_translate("MainWindow", "一键检查"))
+        self.pushButton_check.setText(_translate("MainWindow", "一键执行"))
         self.menu.setTitle(_translate("MainWindow", "文件"))
         self.menu_2.setTitle(_translate("MainWindow", "语言"))
         self.actionOpen.setText(_translate("MainWindow", "打开"))

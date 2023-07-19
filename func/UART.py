@@ -4,6 +4,7 @@ CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
 DIS_DIFF = 20  # 允许测距误差范围
 FPS_DIFF = 20  # 允许帧率误差范围
+SingleRangeCmd = '5A 04 04 62'  # 单次测距指令
 
 
 # 发送 JSON 文件中的指令
@@ -35,12 +36,12 @@ def recvData_UART(self):
                 print('rxhex:', ' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
                 print('------------------------------')
                 break
-            elif (time.time() - start_time) > 1:  # 数据接收超过 1s 都无帧头跳出循环
-                print('Timeout 1s, rx read 18 bytes')
+            elif (time.time() - start_time) > 3:  # 数据接收超过 3s 都无帧头跳出循环
+                print('Timeout 2s, rx read 18 bytes')
                 self.rx = self.ser.read(18)  # 超时读取两个帧来观察
                 break
-        elif (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
-            print('Timeout 1s, empty rx')
+        elif (time.time() - start_time) > 3:  # 超过 3s 都无数据接收跳出循环
+            print('Timeout 3s, empty rx')
             self.rx = b''
             break
 
@@ -132,6 +133,7 @@ def checkDis_UART(self):
         stddis = 0
     start_time = time.time()  # 记录开始时间
     self.ser.reset_input_buffer()
+    time.sleep(0.1)
     while True:
         if self.ser.in_waiting:
             rxhead = self.ser.read(2)  # 读取一个字节，作为帧头
@@ -165,7 +167,33 @@ def checkDis_UART(self):
                     self.widgetslist[self.index].setText('')
                 break
         else:
-            if (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
+            self.ser.write(bytes.fromhex(SingleRangeCmd))
+            print('send range cmd')
+            time.sleep(0.1)
+            if self.ser.in_waiting:
+                rxhead = self.ser.read(2)
+                if rxhead == RECV_FRAME_HEADER:
+                    rxdata = self.ser.read(7)
+                    self.rx = rxhead + rxdata
+                    print('rx:', ' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
+                    dist = int.from_bytes(self.rx[2:4], byteorder='little')
+                    self.widgetslist[self.index].setText(str(dist) + ' (cm)')
+                    if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text() != '':
+                        self.labelReturnlist[self.index].setText('OK')
+                        self.labelReturnlist[self.index].setStyleSheet('color: green')
+                        print('send range cmd Distance is Correct')
+                    elif abs(stddis - dist) <= DIS_DIFF:
+                        self.labelReturnlist[self.index].setText('OK')
+                        self.labelReturnlist[self.index].setStyleSheet('color: green')
+                        print('send range cmd Distance is Correct')
+                    else:
+                        self.labelReturnlist[self.index].setText('NG')
+                        self.labelReturnlist[self.index].setStyleSheet('color: red')
+                        print('send range cmd Distance is Error')
+                    print('send range cmd std disVal:', stddis, 'actual disVal:', dist)
+                    print('------------------------------')
+                break
+            elif (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
                 print('Timeout 1s, empty rx')
                 self.rx = b''
                 self.labelReturnlist[self.index].setText('NG')

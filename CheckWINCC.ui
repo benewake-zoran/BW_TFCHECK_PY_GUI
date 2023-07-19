@@ -10,6 +10,18 @@
     <height>653</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>653</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>653</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>BW_CheckWINCC</string>
   </property>
@@ -234,7 +246,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>一键检查</string>
+      <string>一键执行</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_return">

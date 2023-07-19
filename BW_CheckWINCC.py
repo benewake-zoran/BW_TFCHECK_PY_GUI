@@ -40,6 +40,10 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.trans = QTranslator()  # 翻译家
         self.ENFlag = False  # 英文界面标识
 
+    # 在调整窗口大小时触发自动调整QWidget的大小和位置
+    def resizeEvent(self, event):
+        self.widget1.setGeometry(15, 50, self.width() - 30, self.height() - 130)
+
     # 获取串口列表
     def getSerialPort(self):
         ports = serial.tools.list_ports.comports()
@@ -135,7 +139,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             _app.installTranslator(self.trans)
             self.retranslateUi(self)  # 重新翻译 Ui 界面
             self.ENFlag = False
-            self.actionOpen.trigger()
+            # self.actionOpen.trigger()
         except Exception as e:
             print(type(e))
             print(e)
@@ -150,7 +154,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             _app.installTranslator(self.trans)
             self.retranslateUi(self)
             self.ENFlag = True
-            self.actionOpen.trigger()
+            # self.actionOpen.trigger()
         except Exception as e:
             print(type(e))
             print(e)
@@ -367,11 +371,13 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             NGflag = False
             self.Skipflag = True
             self.clearLabel()
-            time.sleep(0.5)
+            time.sleep(1)
             for button in self.buttonlist:
-                button.click()
-                QApplication.processEvents()  # 实时更新GUI
+                QApplication.processEvents()
                 time.sleep(0.5)
+                button.click()
+                # QApplication.processEvents()  # 实时更新GUI
+                # time.sleep(0.5)
                 self.savelist()  # 保存检查结果
                 if self.widgetslist[self.index].text() == '':
                     break

@@ -106,7 +106,7 @@ def recvData_MODBUS(self):
                 print('rx!=head self.rx:', self.rx.hex())
                 break
 
-        elif (time.time() - start_time) > 1:  # 超过 1s 都无数据接收
+        elif (time.time() - start_time) > 3:  # 超过 3s 都无数据接收
             pollID_MODBUS(self)  # 尝试再次轮询地址,看是否是发送指令的读写地址位错误
             sendCmd_MODBUS(self)  # 轮询地址后再次尝试发送指令
             time.sleep(0.1)
