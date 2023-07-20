@@ -30,6 +30,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.cmdlist = []  # 初始化点击按钮对应发送指令的列表
         self.rxlist = []  # 初始化点击按钮对应接收指令的列表
 
+        self.widgetslist = []  # 组件列表
+        self.labelReturnlist = []  # 结果返回OK/NG标签列表
+
         self.address = None
         self.SlaveID = None
         self.Skipflag = False
