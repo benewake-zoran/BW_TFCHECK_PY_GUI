@@ -162,6 +162,17 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             print(type(e))
             print(e)
 
+    # 帮助菜单栏下打开帮助文档
+    def trigger_actHelp(self):
+        try:
+            # current_path = os.path.abspath(os.path.dirname(__file__))  # 获取当前路径
+            # html_path = os.path.join(current_path, 'help', 'help.html')  # 拼接帮助文件路径
+            # os.startfile(html_path)
+            os.startfile('help\help.html')
+        except Exception as e:
+            print(type(e))
+            print(e)
+
     # 菜单栏打开的信号和槽函数
     def trigger_actOpen(self):
         try:

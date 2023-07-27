@@ -94,6 +94,8 @@ class Ui_MainWindow(object):
         self.menu.setObjectName("menu")
         self.menu_2 = QtWidgets.QMenu(self.menubar)
         self.menu_2.setObjectName("menu_2")
+        self.menu_3 = QtWidgets.QMenu(self.menubar)
+        self.menu_3.setObjectName("menu_3")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -108,12 +110,16 @@ class Ui_MainWindow(object):
         self.actionChinese.setObjectName("actionChinese")
         self.actionEnglish = QtWidgets.QAction(MainWindow)
         self.actionEnglish.setObjectName("actionEnglish")
+        self.actionHelp = QtWidgets.QAction(MainWindow)
+        self.actionHelp.setObjectName("actionHelp")
         self.menu.addAction(self.actionOpen)
         self.menu_2.addAction(self.actionChinese)
         self.menu_2.addSeparator()
         self.menu_2.addAction(self.actionEnglish)
+        self.menu_3.addAction(self.actionHelp)
         self.menubar.addAction(self.menu.menuAction())
         self.menubar.addAction(self.menu_2.menuAction())
+        self.menubar.addAction(self.menu_3.menuAction())
 
         self.retranslateUi(MainWindow)
         self.actionOpen.triggered.connect(MainWindow.trigger_actOpen) # type: ignore
@@ -122,6 +128,7 @@ class Ui_MainWindow(object):
         self.pushButton_check.clicked.connect(MainWindow.checkAll) # type: ignore
         self.actionChinese.triggered.connect(MainWindow.trigger_actChinese) # type: ignore
         self.actionEnglish.triggered.connect(MainWindow.trigger_actEnglish) # type: ignore
+        self.actionHelp.triggered.connect(MainWindow.trigger_actHelp) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -147,7 +154,10 @@ class Ui_MainWindow(object):
         self.pushButton_check.setText(_translate("MainWindow", "一键执行"))
         self.menu.setTitle(_translate("MainWindow", "文件"))
         self.menu_2.setTitle(_translate("MainWindow", "语言"))
+        self.menu_3.setTitle(_translate("MainWindow", "帮助"))
         self.actionOpen.setText(_translate("MainWindow", "打开"))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+O"))
         self.actionChinese.setText(_translate("MainWindow", "中文"))
         self.actionEnglish.setText(_translate("MainWindow", "English"))
+        self.actionHelp.setText(_translate("MainWindow", "文档"))
+        self.actionHelp.setShortcut(_translate("MainWindow", "Ctrl+H"))

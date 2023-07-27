@@ -293,8 +293,15 @@
     <addaction name="separator"/>
     <addaction name="actionEnglish"/>
    </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>帮助</string>
+    </property>
+    <addaction name="actionHelp"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -319,6 +326,14 @@
   <action name="actionEnglish">
    <property name="text">
     <string>English</string>
+   </property>
+  </action>
+  <action name="actionHelp">
+   <property name="text">
+    <string>文档</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+H</string>
    </property>
   </action>
  </widget>
@@ -420,6 +435,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionHelp</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>trigger_actHelp()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>296</x>
+     <y>326</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>trigger_actOpen()</slot>
@@ -431,5 +462,6 @@
   <slot>checkAll()</slot>
   <slot>trigger_actChinese()</slot>
   <slot>trigger_actEnglish()</slot>
+  <slot>trigger_actHelp()</slot>
  </slots>
 </ui>
