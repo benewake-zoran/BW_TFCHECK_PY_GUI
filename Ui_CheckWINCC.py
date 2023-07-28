@@ -18,7 +18,7 @@ class Ui_MainWindow(object):
         MainWindow.setMinimumSize(QtCore.QSize(0, 653))
         MainWindow.setMaximumSize(QtCore.QSize(16777215, 653))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("d:\\北醒资料\\Benewake_CheckWINCC\\BenewakeLogo.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap("./BenewakeLogo.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
