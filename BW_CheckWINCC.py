@@ -272,25 +272,31 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
     # 根据点击按钮的索引发送不同的指令
     def sendCmd(self):
         try:
-            button = self.sender()  # 获取当前被点击的按钮
-            self.index = self.buttonlist.index(button)  # 获取按钮在列表中的索引
+            if self.pushButton_connect.text() == '连接' or self.pushButton_connect.text() == 'connect':
+                if self.ENFlag is False:
+                    QMessageBox.warning(None, 'Error', '串口未连接!')
+                elif self.ENFlag is True:
+                    QMessageBox.warning(None, 'Error', 'The serial port is not connected!')
+            else:
+                button = self.sender()  # 获取当前被点击的按钮
+                self.index = self.buttonlist.index(button)  # 获取按钮在列表中的索引
 
-            if self.comboBox_port.currentText() == 'UART':
-                func.UART.sendCmd_UART(self)
-                self.check_UART()  # 检查UART对应雷达配置
-            elif self.comboBox_port.currentText() == 'IIC':
-                func.IIC.sendCmd_IIC(self)
-                self.check_IIC()  # 检查IIC对应雷达配置
-            elif self.comboBox_port.currentText() == 'RS485':
-                func.MODBUS.sendCmd_MODBUS(self)
-                self.check_MODBUS()
-            elif self.comboBox_port.currentText() == 'RS232':
-                func.RS232.sendCmd_RS232(self)
-                self.check_RS232()
+                if self.comboBox_port.currentText() == 'UART':
+                    func.UART.sendCmd_UART(self)
+                    self.check_UART()  # 检查UART对应雷达配置
+                elif self.comboBox_port.currentText() == 'IIC':
+                    func.IIC.sendCmd_IIC(self)
+                    self.check_IIC()  # 检查IIC对应雷达配置
+                elif self.comboBox_port.currentText() == 'RS485':
+                    func.MODBUS.sendCmd_MODBUS(self)
+                    self.check_MODBUS()
+                elif self.comboBox_port.currentText() == 'RS232':
+                    func.RS232.sendCmd_RS232(self)
+                    self.check_RS232()
 
-            self.timer.start(100)  # 启动计时器为100毫秒
-            # self.savelist()
-            # self.saveSetting()
+                self.timer.start(100)  # 启动计时器为100毫秒
+                # self.savelist()
+                # self.saveSetting()
 
         except Exception as e:
             print(e)
@@ -381,36 +387,48 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
 
     def checkAll(self):
         try:
-            self.clearlist()
-            NGflag = False
-            self.Skipflag = True
-            self.clearLabel()
-            time.sleep(1)
-            for button in self.buttonlist:
-                QApplication.processEvents()
-                time.sleep(0.5)
-                button.click()
-                # QApplication.processEvents()  # 实时更新GUI
-                # time.sleep(0.5)
-                self.savelist()  # 保存检查结果
-                if self.widgetslist[self.index].text() == '':
-                    break
-            print('------------------------------')
-            self.Skipflag = False
-
-            for label in self.labelReturnlist:  # 轮询返回标签
-                if label.text() == 'NG':
-                    NGflag = True
-                    break
-            if NGflag is False:
-                self.label_return.setText('OK')
-                self.label_return.setStyleSheet('color: green')
+            if self.pushButton_connect.text() == '连接' or self.pushButton_connect.text() == 'connect':
+                if self.ENFlag is False:
+                    QMessageBox.warning(None, 'Error', '串口未连接!')
+                elif self.ENFlag is True:
+                    QMessageBox.warning(None, 'Error', 'The serial port is not connected!')
             else:
-                self.label_return.setText('NG')
-                self.label_return.setStyleSheet('color: red')
+                self.clearlist()
+                NGflag = False
+                self.Skipflag = True
+                self.clearLabel()
+                time.sleep(1)
+                for button in self.buttonlist:
+                    QApplication.processEvents()
+                    time.sleep(0.5)
+                    button.click()
+                    if self.widgetslist[self.index].text() == '':  # 若接收失败等待1s后尝试再次检验以增加稳定性
+                        time.sleep(1)
+                        button.click()
+                        if self.widgetslist[self.index].text() == '':  # 若接收失败等待3s后尝试再次检验以增加稳定性
+                            time.sleep(1)
+                            button.click()
+                            if self.widgetslist[self.index].text() == '':  # 若仍无接收则退出循环不再检验
+                                break
+                    # QApplication.processEvents()  # 实时更新GUI
+                    # time.sleep(0.5)
+                    self.savelist()  # 保存检查结果
+                print('------------------------------')
+                self.Skipflag = False
 
-            self.gettxtname()  # 搜素文件夹下的 txt 文件
-            self.saveSetting()  # 将检查的数据写入到 txt 文件中
+                for label in self.labelReturnlist:  # 轮询返回标签
+                    if label.text() == 'NG':
+                        NGflag = True
+                        break
+                if NGflag is False:
+                    self.label_return.setText('OK')
+                    self.label_return.setStyleSheet('color: green')
+                else:
+                    self.label_return.setText('NG')
+                    self.label_return.setStyleSheet('color: red')
+
+                self.gettxtname()  # 搜素文件夹下的 txt 文件
+                self.saveSetting()  # 将检查的数据写入到 txt 文件中
 
         except Exception as e:
             print(e)
@@ -458,6 +476,8 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             ID = self.vallist[index]
             print('save ID:', ID)
             file_name = 'RS485_ID_' + ID + '_' + self.label_return.text() + '_' + '{:03d}.txt'.format(self.lentxt + 1)
+        else:
+            file_name = self.label_return.text() + '_' + '{:03d}.txt'.format(self.lentxt + 1)
         # 定义待保存的文件路径（在新建的文件夹下）
         file_path = os.path.join(self.dir_path, file_name)
         # 打开文件写入数据
