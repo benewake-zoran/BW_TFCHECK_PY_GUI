@@ -334,9 +334,12 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
     def check_UART(self):
         # 发送指令后对回显检查和接收处理，或检查无需发送指令的雷达配置
         if self.data[self.index]['cmd'] != '':
-            func.UART.recvData_UART(self)
-            func.UART.recvAnalysis_UART(self)
-            func.UART.recvJudge_UART(self)
+            if self.data[self.index]['name'] == '测距结果' or self.data[self.index]['name'] == 'RangingResult': #特殊情况，单次测距的时候
+                func.UART.checkDis_UART(self)
+            else:
+                func.UART.recvData_UART(self)
+                func.UART.recvAnalysis_UART(self)
+                func.UART.recvJudge_UART(self)           
         else:
             if self.data[self.index]['name'] == '输出帧率' or self.data[self.index]['name'] == 'FrameRate':
                 func.UART.checkFrame_UART(self)
@@ -410,6 +413,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                             button.click()
                             if self.widgetslist[self.index].text() == '':  # 若仍无接收则退出循环不再检验
                                 break
+                    #if 
                     # QApplication.processEvents()  # 实时更新GUI
                     # time.sleep(0.5)
                     self.savelist()  # 保存检查结果

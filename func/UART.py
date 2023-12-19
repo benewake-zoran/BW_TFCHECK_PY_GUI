@@ -23,6 +23,16 @@ def sendCmd_UART(self):
 def recvData_UART(self):
     start_time = time.time()  # 记录开始时间
     while True:
+        # if (time.time() %0.5) == 0 : 
+        #     # sendCmd_UART(self)
+        #     print('send cmd:', self.data[self.index]['cmd'])  # 获取对应的指令
+        #     if self.data[self.index]['cmd'] != '':  # 判断指令是否为空
+        #         self.labelCmdb = bytes.fromhex(self.data[self.index]['cmd'])
+        #         print('cmdb', self.labelCmdb)
+        #         self.ser.reset_input_buffer()
+        #         self.ser.write(self.labelCmdb)  # 发送指令
+        #         print('------------------------------')
+
         if self.ser.in_waiting:  # 如果串口有数据接收
             rxhead = self.ser.read(1)  # 读取一个字节，作为帧头
             print('rxhead:', rxhead, 'rxheadhex:', rxhead.hex())
@@ -55,6 +65,13 @@ def recvAnalysis_UART(self):
             self.widgetslist[self.index].setText(SN_rxstr)
             print('序列号是：', SN_rxstr)
             print('------------------------------')
+        elif self.rx != b'' and self.rx[2] == 0x56:     #TF03比较特殊
+            SN_rxhex = self.rx[4:18]
+            SN_rxstr = ''.join([chr(x) for x in SN_rxhex])
+            self.widgetslist[self.index].setText(SN_rxstr)
+            print('序列号是：', SN_rxstr)
+            print('------------------------------')
+
     elif self.data[self.index]['name'] == '固件版本' or self.data[self.index]['name'] == 'FirmwareVer':
         if self.rx != b'' and self.rx[2] == 0x01:
             version_rxhex = self.rx[3:6][::-1].hex()  # 取出字节数组并反转后转为十六进制
@@ -127,7 +144,8 @@ def checkFrame_UART(self):
 
 # 检查测距
 def checkDis_UART(self):
-    if self.data[self.index]['std'] != '':
+    print('!!!!!!!!!')
+    if self.data[self.index]['std'] != '':  
         stddis = int(self.data[self.index]['std'])
     else:
         stddis = 0
