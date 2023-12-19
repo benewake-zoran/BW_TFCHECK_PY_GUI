@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(594, 653)
+        MainWindow.resize(593, 653)
         MainWindow.setMinimumSize(QtCore.QSize(0, 653))
         MainWindow.setMaximumSize(QtCore.QSize(16777215, 653))
         icon = QtGui.QIcon()
@@ -88,7 +88,7 @@ class Ui_MainWindow(object):
         self.label_return.setObjectName("label_return")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 594, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 593, 19))
         self.menubar.setObjectName("menubar")
         self.menu = QtWidgets.QMenu(self.menubar)
         self.menu.setObjectName("menu")
@@ -133,7 +133,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "BW_CheckWINCC"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "BW_CheckWINCC_1.6"))
         self.pushButton_connect.setText(_translate("MainWindow", "连接"))
         self.label_serial.setText(_translate("MainWindow", "串口"))
         self.pushButton_refresh.setText(_translate("MainWindow", "刷新"))

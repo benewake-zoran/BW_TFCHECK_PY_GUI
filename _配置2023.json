@@ -1,5 +1,10 @@
+      
 [
-    {"id": 0, "name": "序列号", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 12 70"},
-    {"id": 1, "name": "固件版本", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 01 5F"},
-    {"id": 2, "name": "测距结果", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 05 00 01 60"}
+    
+   
+	{"id": 2, "name": "921600", "widget": "QLabel", "button": "设置", "std": "5A 08 06 00 10  00 86", "cmd": "5A 08 06 00 10 0E 00 86"},
+    {"id": 3, "name": "输出7K", "widget": "QLabel", "button": "设置", "std": "5A 06 03 58 1B D6", "cmd": "5A 06 03 58 1B D6"},
+	{"id": 4, "name": "保存设置", "widget": "QLabel", "button": "设置", "std": "5A 05 11 00 70", "cmd": "5A 04 11 6F"}
 ]
+
+    

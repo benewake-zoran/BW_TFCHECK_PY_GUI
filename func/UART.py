@@ -4,6 +4,7 @@ CMD_FRAME_HEADER = b'Z'  # 指令帧头定义 0x5A
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
 DIS_DIFF = 20  # 允许测距误差范围
 FPS_DIFF = 20  # 允许帧率误差范围
+timeout = 1
 SingleRangeCmd = '5A 04 04 62'  # 单次测距指令
 
 
@@ -46,12 +47,12 @@ def recvData_UART(self):
                 print('rxhex:', ' '.join([hex(x)[2:].zfill(2) for x in self.rx]))
                 print('------------------------------')
                 break
-            elif (time.time() - start_time) > 3:  # 数据接收超过 3s 都无帧头跳出循环
-                print('Timeout 2s, rx read 18 bytes')
+            elif (time.time() - start_time) > timeout:  # 数据接收超过 1s 都无帧头跳出循环
+                print('Timeout 1s, rx read 18 bytes')
                 self.rx = self.ser.read(18)  # 超时读取两个帧来观察
                 break
-        elif (time.time() - start_time) > 3:  # 超过 3s 都无数据接收跳出循环
-            print('Timeout 3s, empty rx')
+        elif (time.time() - start_time) > timeout:  # 超过 1s 都无数据接收跳出循环  没有数据接收超过一秒 
+            print('Timeout 1s, empty rx')
             self.rx = b''
             break
 
@@ -144,7 +145,6 @@ def checkFrame_UART(self):
 
 # 检查测距
 def checkDis_UART(self):
-    print('!!!!!!!!!')
     if self.data[self.index]['std'] != '':  
         stddis = int(self.data[self.index]['std'])
     else:
@@ -176,7 +176,7 @@ def checkDis_UART(self):
                     print('Distance is Error')
                 print('std disVal:', stddis, 'actual disVal:', dist)
                 break
-            elif (time.time() - start_time) > 1:  # 数据接收超过 1s 都无帧头跳出循环
+            elif (time.time() - start_time) > timeout:  # 数据接收超过 0.5s 都无帧头跳出循环
                 print('Timeout 1s, rx read 18 bytes')
                 self.rx = self.ser.read(18)  # 超时读取两个帧来观察
                 self.labelReturnlist[self.index].setText('NG')
@@ -211,7 +211,7 @@ def checkDis_UART(self):
                     print('send range cmd std disVal:', stddis, 'actual disVal:', dist)
                     print('------------------------------')
                 break
-            elif (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
+            elif (time.time() - start_time) > timeout:  # 超过 0.5s 都无数据接收跳出循环
                 print('Timeout 1s, empty rx')
                 self.rx = b''
                 self.labelReturnlist[self.index].setText('NG')
@@ -243,7 +243,7 @@ def checkOther_UART(self):
                 self.labelReturnlist[self.index].setStyleSheet('color: green')
                 print('------------------------------')
                 break
-            elif (time.time() - start_time) > 1:  # 数据接收超过 1s 都无帧头跳出循环
+            elif (time.time() - start_time) > timeout:  # 数据接收超过 1s 都无帧头跳出循环
                 print('Timeout 1s, rx read 18 bytes')
                 self.rx = self.ser.read(18)  # 超时读取两个帧来观察
                 self.labelReturnlist[self.index].setText('NG')
@@ -252,7 +252,7 @@ def checkOther_UART(self):
                     self.widgetslist[self.index].setText('')
                 break
         else:
-            if (time.time() - start_time) > 1:  # 超过 1s 都无数据接收跳出循环
+            if (time.time() - start_time) > timeout:  # 超过 1s 都无数据接收跳出循环
                 print('Timeout 1s, empty rx')
                 self.rx = b''
                 self.labelReturnlist[self.index].setText('NG')

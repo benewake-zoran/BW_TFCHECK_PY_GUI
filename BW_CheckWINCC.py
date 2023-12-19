@@ -405,14 +405,21 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                     QApplication.processEvents()
                     time.sleep(0.5)
                     button.click()
-                    if self.widgetslist[self.index].text() == '':  # 若接收失败等待1s后尝试再次检验以增加稳定性
-                        time.sleep(1)
+                    count = 0 
+                    while self.widgetslist[self.index].text() == '':  #  修改者H ：把连续if改成while，一键执行时发送指令没收到回复时，再次发送指令提高成功率
+                        #time.sleep(0.3)                              
                         button.click()
-                        if self.widgetslist[self.index].text() == '':  # 若接收失败等待3s后尝试再次检验以增加稳定性
-                            time.sleep(1)
-                            button.click()
-                            if self.widgetslist[self.index].text() == '':  # 若仍无接收则退出循环不再检验
-                                break
+                        count+=1
+                        if count == 3:
+                           NGflag = True   
+                           break  
+                    for label in self.labelReturnlist:  # 轮询返回标签
+                      if label.text() == 'NG':          # 修改者H ：一键执行过程中已经遇到错误了，就直接结束并报NG ，避免配置没改成功但是却保存了           
+                        NGflag = True
+                        break
+                    if NGflag == True:    
+                        break 
+                                 
                     #if 
                     # QApplication.processEvents()  # 实时更新GUI
                     # time.sleep(0.5)
@@ -420,10 +427,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                 print('------------------------------')
                 self.Skipflag = False
 
-                for label in self.labelReturnlist:  # 轮询返回标签
-                    if label.text() == 'NG':
-                        NGflag = True
-                        break
+        
                 if NGflag is False:
                     self.label_return.setText('OK')
                     self.label_return.setStyleSheet('color: green')
