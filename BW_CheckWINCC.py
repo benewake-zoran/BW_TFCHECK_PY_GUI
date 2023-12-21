@@ -283,13 +283,24 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
 
                 if self.comboBox_port.currentText() == 'UART':
                     func.UART.sendCmd_UART(self)
-                    self.check_UART()  # 检查UART对应雷达配置
+                    self.check_UART()  # 检查UART对应雷达配置                   
                 elif self.comboBox_port.currentText() == 'IIC':
                     func.IIC.sendCmd_IIC(self)
                     self.check_IIC()  # 检查IIC对应雷达配置
-                elif self.comboBox_port.currentText() == 'RS485':
-                    func.MODBUS.sendCmd_MODBUS(self)
-                    self.check_MODBUS()
+
+                elif self.comboBox_port.currentText() == 'RS485':  #增加了modbus帧头的判断可以在
+                    if self.data[self.index]['widget'] == 'QLabel':
+                       print('common cmd:', self.data[self.index]['cmd'])  # 获取对应的指令
+                       cmd = self.data[self.index]['cmd']
+                       if 'ADDR' in cmd or  self.data[self.index]['name'] == 'SlaveID': #如果cmd中包含ADDR（Modbus的帧头） 或者 name是SlaveID  使用Modbus协议
+                            print("cmd 包含 'ADDR'")
+                            func.MODBUS.sendCmd_MODBUS(self)
+                            self.check_MODBUS()
+                       else:                                                             #否则使用通用串口协议
+                            print("cmd 不包含 'ADDR'")
+                            func.UART.sendCmd_UART(self)
+                            self.check_UART()  # 检查UART对应雷达配置
+    
                 elif self.comboBox_port.currentText() == 'RS232':
                     func.RS232.sendCmd_RS232(self)
                     self.check_RS232()

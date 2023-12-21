@@ -69,7 +69,7 @@ def sendCmd_MODBUS(self):
             if self.SlaveID is None:
                 pollID_MODBUS(self)
 
-            if self.SlaveID is not None:
+            if self.SlaveID is not None:             
                 Cmd_str = self.data[self.index]['cmd'].replace('ADDR', self.SlaveID[2:])
                 print('1 Cmd_str:', Cmd_str)
                 Cmd = bytes.fromhex(Cmd_str)  # str 转为 byte
@@ -99,9 +99,9 @@ def recvData_MODBUS(self):
                     self.rx = rxhead + rxfuncode + rxlen + rxdata
                     print('rx==head self.rx:', self.rx.hex())
                     break
-            else:
+            else:  #0x06 
                 print('rx head is not SlaveID')  # 帧头不是 SlaveID 接收剩下数据观察
-                rxdata = self.ser.readall()
+                rxdata = self.ser.read(6)  #H：只接收8位，就不会在关闭Modbus保存之后卡死
                 self.rx = rxhead + rxfuncode + rxdata
                 print('rx!=head self.rx:', self.rx.hex())
                 break
