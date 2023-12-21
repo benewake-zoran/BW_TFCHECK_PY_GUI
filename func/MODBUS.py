@@ -122,7 +122,7 @@ def recvData_MODBUS(self):
                     print('time out retry self.rx:', self.rx.hex())
                     break
                 else:
-                    rxdata = self.ser.readall()
+                    rxdata = self.ser.read(20)
                     self.rx = rxhead + rxfuncode + rxdata
                     print('time out retry rxhead is not SlaveID')
                     print('time out retry self.rx:', self.rx.hex())

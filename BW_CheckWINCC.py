@@ -45,7 +45,10 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
 
     # 在调整窗口大小时触发自动调整QWidget的大小和位置
     def resizeEvent(self, event):
-        self.widget1.setGeometry(15, 50, self.width() - 30, self.height() - 130)
+        self.widget1.setGeometry(15, 50, self.width() - 30, self.height() - 150)   #json文件里的控件
+        self.widget.setGeometry(15, 50, self.width() - 30, self.height() - 20)     #一键执行的显示范围
+        self.pushButton_check.setGeometry(130, self.height() -150, 331, 31)        #一键执行的位置
+        self.label_return.setGeometry(500, self.height() -150, 60, 28)             #一键执行旁边的NG和OK的位置
 
     # 获取串口列表
     def getSerialPort(self):
@@ -421,7 +424,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                         #time.sleep(0.3)                              
                         button.click()
                         count+=1
-                        if count == 3:
+                        if count == 2:
                            NGflag = True   
                            break  
                     for label in self.labelReturnlist:  # 轮询返回标签
