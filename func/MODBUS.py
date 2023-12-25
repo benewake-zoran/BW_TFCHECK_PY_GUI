@@ -3,7 +3,7 @@ import serial
 import crcmod
 
 DIS_CMD = 'ADDR 03 00 00 00 01'  # 测距指令
-DIS_DIFF = 20  # 允许测距误差范围
+DIS_DIFF = 6  # 允许测距误差范围  //2023年10月19日 zoran ：误差由20改为6cm
 FPS_DIFF = 20  # 允许帧率误差范围
 RECV_FRAME_HEADER = b'YY'  # 接收数据帧头定义 0x59 0x59
 
