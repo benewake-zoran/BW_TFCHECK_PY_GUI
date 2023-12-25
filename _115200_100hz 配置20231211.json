@@ -1,7 +1,0 @@
-[
-    {"id": 0, "name": "序列号", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 05 56 00 B5"},
-    {"id": 1, "name": "固件版本", "widget": "QLabel", "button": "检查", "std": "", "cmd": "5A 04 01 5F"},
-	{"id": 2, "name": "115200", "widget": "QLabel", "button": "设置", "std": "5A 08 06 00 C2 01 00 2B", "cmd": "5A 08 06 00 C2 01 00 2B"},
-    {"id": 3, "name": "输出100", "widget": "QLabel", "button": "设置", "std": "5A 06 03 64 00 C7", "cmd": "5A 06 03 64 00 C7"},
-	{"id": 4, "name": "保存设置", "widget": "QLabel", "button": "设置", "std": "5A 05 11 00 70", "cmd": "5A 04 11 6F"}
-]
