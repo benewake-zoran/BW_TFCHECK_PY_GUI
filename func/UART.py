@@ -237,10 +237,14 @@ def checkOther_UART(self):
                 temp = int.from_bytes(self.rx[6:8], byteorder='little')
                 tempC = int(temp / 8 - 256)
                 text = 'D=' + str(dist) + ';S=' + str(strength) + ';T=' + str(tempC)
-                if self.data[self.index]['widget'] == 'QLabel':
+                if (self.data[self.index]['widget'] == 'QLabel'and self.data[self.index]['name'] != 'SlaveID' 
+                    and self.data[self.index]['name'] != 'I2C从机地址'): #防止和其他文本判断逻辑冲突，没得到和文本标签对应的结果还OK
                     self.widgetslist[self.index].setText(text)
-                self.labelReturnlist[self.index].setText('OK')
-                self.labelReturnlist[self.index].setStyleSheet('color: green')
+                    self.labelReturnlist[self.index].setText('OK')
+                    self.labelReturnlist[self.index].setStyleSheet('color: green')      
+                else:
+                    self.labelReturnlist[self.index].setText('NG')
+                    self.labelReturnlist[self.index].setStyleSheet('color: red')
                 print('------------------------------')
                 break
             elif (time.time() - start_time) > timeout:  # 数据接收超过 1s 都无帧头跳出循环
