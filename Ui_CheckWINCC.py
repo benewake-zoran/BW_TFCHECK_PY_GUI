@@ -138,7 +138,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "BW_CheckWINCC_1.6"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "BW_CheckWINCC_1.7"))
         self.pushButton_connect.setText(_translate("MainWindow", "连接"))
         self.label_serial.setText(_translate("MainWindow", "串口"))
         self.pushButton_refresh.setText(_translate("MainWindow", "刷新"))

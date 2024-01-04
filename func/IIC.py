@@ -48,23 +48,30 @@ def sendCmd_IIC(self):
                 pollAddress_IIC(self)
 
             if self.address is not None:
-                Cmd = '53 W LEN1 DATA 50 53 R LEN2 50'  # IIC通信时序
+                Cmd = '53 W LEN1 DATA 50'  # IIC写操作
+                Cmd1 = '53 R LEN2 50'      # IIC读操作
                 DataCmd = self.data[self.index]['cmd']  # 将 JSON 中的指令字符串取出
                 LEN1 = len(DataCmd.split())  # 计算写入指令字节数
                 WCmd = hex((int(self.address, 16) << 1) & 0xFE)[2:].zfill(2).upper()  # 写操作
                 RCmd = hex((int(self.address, 16) << 1) | 0x01)[2:].zfill(2).upper()  # 读操作
-                NewCmd = Cmd.replace('W', WCmd).replace('LEN1', str(LEN1).zfill(2)).replace('DATA', DataCmd).replace('R', RCmd)
+                NewCmd = Cmd.replace('W', WCmd).replace('LEN1', str(LEN1).zfill(2)).replace('DATA', DataCmd)
+                NewCmd1 = Cmd1.replace('R', RCmd)
                 if self.data[self.index]['name'] == '序列号' or self.data[self.index]['name'] == 'SerialNumber':
-                    NewCmd = NewCmd.replace('LEN2', '12')
+                    NewCmd1 = NewCmd1.replace('LEN2', '12')
                 elif self.data[self.index]['name'] == '固件版本' or self.data[self.index]['name'] == 'FirmwareVer':
-                    NewCmd = NewCmd.replace('LEN2', '07')
+                    NewCmd1 = NewCmd1.replace('LEN2', '07')
                 else:
-                    NewCmd = NewCmd.replace('LEN2', '05')  # 读取9个字节观察
+                    NewCmd1 = NewCmd1.replace('LEN2', '05')  # 读取5个字节观察
                 self.newCmd = bytes.fromhex(NewCmd)
                 self.IICCmd = NewCmd  # IIC 指令 str类型
+                self.newCmd1 = bytes.fromhex(NewCmd1)
+                self.IICCmd1 = NewCmd1  # IIC 指令 str类型
                 print('IIC newCmd:', self.IICCmd)
+                print('IIC newCmd1:', self.IICCmd1)
                 self.ser.reset_input_buffer()
                 self.ser.write(self.newCmd)  # 发送指令
+                time.sleep(1)
+                self.ser.write(self.newCmd1)  # 发送指令
                 print('------------------------------')
 
 
