@@ -47,9 +47,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
     def resizeEvent(self, event):
         self.widget1.setGeometry(15, 50, self.width() - 30, self.height() - 150)   #json文件里的控件
         self.widget.setGeometry(15, 50, self.width() - 30, self.height() - 20)     #一键执行的显示范围
-        self.pushButton_check.setGeometry(130, self.height() -150, 331, 31)        #一键执行的位置
-        self.label_return.setGeometry(500, self.height() -150, 60, 28)             #一键执行旁边的NG和OK的位置
-
+        self.pushButton_check.setGeometry(145, self.height() -150, 331, 31)        #一键执行的位置
+        self.label_return.setGeometry(510, self.height() -150, 60, 28)             #一键执行旁边的NG和OK的位置 frame
+        self.frame.setGeometry(0, 0,  self.width() , int(self.height()*0.12))    
     # 获取串口列表
     def getSerialPort(self):
         ports = serial.tools.list_ports.comports()
