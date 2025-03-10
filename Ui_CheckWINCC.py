@@ -145,7 +145,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "BW_CheckWINCC_1.7"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "BW_CheckWINCC_1.8 beta_0.1 release_20230404"))
         self.label_serial.setText(_translate("MainWindow", "串口"))
         self.label_baud.setText(_translate("MainWindow", "波特率"))
         self.comboBox_baud.setItemText(0, _translate("MainWindow", "115200"))
@@ -161,15 +161,22 @@ class Ui_MainWindow(object):
         self.comboBox_port.setItemText(1, _translate("MainWindow", "IIC"))
         self.comboBox_port.setItemText(2, _translate("MainWindow", "RS485"))
         self.comboBox_port.setItemText(3, _translate("MainWindow", "RS232"))
+        # 设置按钮文本
         self.pushButton_connect.setText(_translate("MainWindow", "连接"))
         self.pushButton_refresh.setText(_translate("MainWindow", "刷新"))
         self.pushButton_check.setText(_translate("MainWindow", "一键执行"))
+        
+        # 设置菜单标题
         self.menu.setTitle(_translate("MainWindow", "文件"))
         self.menu_2.setTitle(_translate("MainWindow", "语言"))
         self.menu_3.setTitle(_translate("MainWindow", "帮助"))
+        
+        # 设置动作文本和快捷键
         self.actionOpen.setText(_translate("MainWindow", "打开"))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+O"))
+        
         self.actionChinese.setText(_translate("MainWindow", "中文"))
         self.actionEnglish.setText(_translate("MainWindow", "English"))
+        
         self.actionHelp.setText(_translate("MainWindow", "文档"))
         self.actionHelp.setShortcut(_translate("MainWindow", "Ctrl+H"))

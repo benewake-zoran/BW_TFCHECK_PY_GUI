@@ -43,6 +43,20 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
         self.trans = QTranslator()  # 翻译家
         self.ENFlag = False  # 英文界面标识
 
+      # 辅助函数，用于判断结果并设置标签文本和样式
+    def _set_judgment_result(self, expected, actual):
+        if expected == '' and actual != '':
+            result = 'OK'
+            color = 'green'
+        elif expected == actual and actual != '':
+            result = 'OK'
+            color = 'green'
+        else:
+            result = 'NG'
+            color = 'red'
+        self.labelReturnlist[self.index].setText(result)
+        self.labelReturnlist[self.index].setStyleSheet(f'color: {color}')
+        
     # 在调整窗口大小时触发自动调整QWidget的大小和位置
     def resizeEvent(self, event):
         self.widget1.setGeometry(15, 50, self.width() - 30, self.height() - 150)   #json文件里的控件

@@ -86,28 +86,17 @@ def recvAnalysis_UART(self):
 
 
 # 判断期望值和检查值是否相同
+# @zoran 2023.08.14 去除重复的控件显示，在 MyMainWindow 类中增加辅助方法 _set_judgment_result
 def recvJudge_UART(self):
-    if self.data[self.index]['widget'] == 'QLabel' or self.data[self.index]['widget'] == 'QLineEdit':
-        if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text() != '':
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].text() and self.widgetslist[self.index].text() != '':
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        else:
-            self.labelReturnlist[self.index].setText('NG')
-            self.labelReturnlist[self.index].setStyleSheet('color: red')
-    elif self.data[self.index]['widget'] == 'QComboBox':
-        if self.data[self.index]['std'] == '' and self.widgetslist[self.index].currentText() != '':
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].currentText():
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        else:
-            self.labelReturnlist[self.index].setText('NG')
-            self.labelReturnlist[self.index].setStyleSheet('color: red')
-
+    widget = self.data[self.index]['widget']
+    if widget in ('QLabel', 'QLineEdit'):
+        actual = self.widgetslist[self.index].text()
+    elif widget == 'QComboBox':
+        actual = self.widgetslist[self.index].currentText()
+    else:
+        return  # 可根据需要添加其他类型的处理逻辑
+    expected = self.data[self.index]['std']
+    self._set_judgment_result(expected, actual)
 
 # 检查输出帧率
 def checkFrame_UART(self):
