@@ -10,9 +10,12 @@ DIS_Cmd = '53 W 05 5A 05 00 01 60 50 53 R 09 50'  # IIC测距指令
 def pollAddress_IIC(self):
     start_time = time.time()
     self.ser.reset_input_buffer()  # 清空输入缓存区
+    # 优化点1：使用更高效的位运算替代多次字符串转换
     for i in range(1, 128):
-        Whex_i = hex((i << 1) & 0xFE)[2:].zfill(2).upper()  # 左移1位后最后位置0
-        Rhex_i = hex((i << 1) | 0x01)[2:].zfill(2).upper()  # 左移1位后最后位置1
+        wc = (i << 1) & 0xFE  # 直接计算写地址
+        rc = wc | 0x01        # 直接计算读地址
+        Whex_i = f"{wc:02X}"  # 使用格式化字符串替代hex()[2:].zfill(2)
+        Rhex_i = f"{rc:02X}"
         NewCmd = DIS_Cmd.replace('W', Whex_i).replace('R', Rhex_i)
         print('i', i, '0xi:', hex(i)[2:].zfill(2), 'Whex_i:', Whex_i, 'Rhex_i:', Rhex_i, 'NewCmd:', NewCmd)
         self.ser.write(bytes.fromhex(NewCmd))
@@ -140,32 +143,24 @@ def recvAnalysis_IIC(self):
             print('固件版本是：', version_rxstr)
             print('------------------------------')
     elif self.data[self.index]['widget'] == 'QLabel':
-        self.widgetslist[self.index].setText(' '.join([hex(x)[2:].zfill(2) for x in self.rx]).upper())
+        # 优化点2：统一十六进制转换方式
+        if self.data[self.index]['widget'] == 'QLabel':
+            # 使用列表推导式生成更高效的十六进制字符串
+            hex_str = ' '.join([f"{x:02X}" for x in self.rx])
+            self.widgetslist[self.index].setText(hex_str)
 
 
 # 判断期望值和检查值是否相同(方法同UART)
 def recvJudge_IIC(self):
-    if self.data[self.index]['widget'] == 'QLabel' or self.data[self.index]['widget'] == 'QLineEdit':
-        if self.data[self.index]['std'] == '' and self.widgetslist[self.index].text() != '':
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].text() and self.widgetslist[self.index].text() != '':
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        else:
-            self.labelReturnlist[self.index].setText('NG')
-            self.labelReturnlist[self.index].setStyleSheet('color: red')
-    elif self.data[self.index]['widget'] == 'QComboBox':
-        if self.data[self.index]['std'] == '' and self.widgetslist[self.index].currentText() != '':
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        elif self.data[self.index]['std'] == self.widgetslist[self.index].currentText():
-            self.labelReturnlist[self.index].setText('OK')
-            self.labelReturnlist[self.index].setStyleSheet('color: green')
-        else:
-            self.labelReturnlist[self.index].setText('NG')
-            self.labelReturnlist[self.index].setStyleSheet('color: red')
-
+    widget = self.data[self.index]['widget']
+    if widget in ('QLabel', 'QLineEdit'):
+        actual = self.widgetslist[self.index].text()
+    elif widget == 'QComboBox':
+        actual = self.widgetslist[self.index].currentText()
+    else:
+        return  # 可根据需要添加其他类型的处理逻辑
+    expected = self.data[self.index]['std']
+    self._set_judgment_result(expected, actual)
 
 # 通过轮询检查IIC从机地址
 def checkAddress_IIC(self):

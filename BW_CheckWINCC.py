@@ -198,7 +198,34 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
             if file_path:
                 # 读取文件内容
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    self.data = json.load(f)  # 从 JSON 文件中读取数据
+                    try:
+                        data = json.load(f)
+                        if "TestItems" not in data:  # 检查关键字段
+                            raise KeyError("Missing 'TestItems' field")
+                        self.data = data["TestItems"]
+                        
+                    except json.JSONDecodeError as e:
+                        error_msg = (
+                            f"JSON语法错误\n"
+                            f"错误位置：第{e.lineno}行，第{e.colno}列\n"
+                            f"错误详情：{e.msg}"
+                        )
+                        if self.ENFlag:
+                            error_msg = (
+                                f"JSON syntax error\n"
+                                f"Position: Line {e.lineno}, Column {e.colno}\n"
+                                f"Detail: {e.msg}"
+                            )
+                        QMessageBox.warning(self, '格式错误', error_msg)
+                        return
+                        
+                    except KeyError as e:
+                        error_msg = f"缺少必要字段: {str(e)}"
+                        if self.ENFlag:
+                            error_msg = f"Missing required field: {str(e)}"
+                        QMessageBox.warning(self, '结构错误', error_msg)
+                        return
+                     # ... 保持原有控件生成代码不变 ...
 
                 Cmdlist = []  # 指令保存列表
                 self.labellist = []  # 标签名称列表
@@ -282,9 +309,18 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):  # 继承QMainWindow类和Ui_Mai
                     button.clicked.connect(self.sendCmd)
                 self.timer = QTimer(self)
                 self.timer.timeout.connect(self.blinkLabel)  # 计时器结束调用闪烁标签效果
+                
+        except FileNotFoundError:
+            error_msg = "文件不存在或路径错误"
+            if self.ENFlag:
+                error_msg = "File not found or invalid path"
+            QMessageBox.warning(self, '文件错误', error_msg)
+            
         except Exception as e:
-            print(type(e))
-            print(e)
+            error_msg = f"未知错误: {str(e)}"
+            if self.ENFlag:
+                error_msg = f"Unknown error: {str(e)}"
+            QMessageBox.warning(self, '错误', error_msg)
 
     # 根据点击按钮的索引发送不同的指令
     def sendCmd(self):
